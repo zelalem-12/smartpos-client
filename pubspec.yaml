@@ -1,0 +1,58 @@
+name: smartpos_client
+description: SmartPOS Ethiopia — Offline-First Smart POS & E-Invoicing System (Model 1)
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.13.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State Management
+  flutter_bloc: ^9.1.1
+  equatable: ^2.0.8
+
+  # Dependency Injection
+  get_it: ^9.2.1
+
+  # Navigation
+  go_router: ^17.3.0
+
+  # HTTP Client
+  dio: ^5.11.0
+
+  # Local Database (Drift ORM + SQLite)
+  drift: ^2.34.4
+  drift_flutter: ^0.3.1
+
+  # QR Code Generation
+  qr_flutter: ^4.1.0
+
+  # Formatting & Utilities
+  intl: ^0.20.3
+  uuid: ^4.6.0
+  crypto: ^3.0.7
+  path_provider: ^2.1.6
+  connectivity_plus: ^7.3.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  integration_test:
+    sdk: flutter
+
+  # Bloc Testing
+  bloc_test: ^10.0.0
+  mocktail: ^1.0.5
+
+  # Drift Code Generation
+  drift_dev: ^2.34.5
+  build_runner: ^2.15.1
+
+  # Linting
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true

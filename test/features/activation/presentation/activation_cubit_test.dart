@@ -1,0 +1,109 @@
+import 'package:bloc_test/bloc_test.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:mocktail/mocktail.dart';
+import 'package:smartpos_client/core/error/failures.dart';
+import 'package:smartpos_client/features/activation/domain/entities/store_config_entity.dart';
+import 'package:smartpos_client/features/activation/domain/usecases/activate_device.dart';
+import 'package:smartpos_client/features/activation/presentation/cubit/activation_cubit.dart';
+import 'package:smartpos_client/features/activation/presentation/cubit/activation_state.dart';
+
+class MockActivateDevice extends Mock implements ActivateDevice {}
+
+void main() {
+  late MockActivateDevice mockActivateDevice;
+
+  const validConfig = StoreConfigEntity(
+    licenseKey: 'ACT-89412',
+    businessName: 'Bole Roasters Cafe PLC',
+    tradeName: 'Bole Cafe',
+    tin: '0012345678',
+    vatRegNo: '123456789',
+    sector: '18. Restaurants & Food Service',
+    address: 'Addis Ababa, Bole',
+    deviceSerial: 'SUNMI-V2P-ET-89412',
+  );
+
+  setUp(() {
+    mockActivateDevice = MockActivateDevice();
+  });
+
+  group('ActivationCubit', () {
+    test('initial state is ActivationInitial', () {
+      final cubit = ActivationCubit(mockActivateDevice);
+      expect(cubit.state, isA<ActivationInitial>());
+      cubit.close();
+    });
+
+    blocTest<ActivationCubit, ActivationState>(
+      'emits [Loading, Success] when valid key submitted',
+      build: () {
+        when(() => mockActivateDevice('ACT-89412'))
+            .thenAnswer((_) async => validConfig);
+        return ActivationCubit(mockActivateDevice);
+      },
+      act: (cubit) => cubit.activate('ACT-89412'),
+      expect: () => [
+        isA<ActivationLoading>(),
+        isA<ActivationSuccess>().having(
+          (s) => s.storeConfig.tin,
+          'tin',
+          '0012345678',
+        ),
+      ],
+    );
+
+    blocTest<ActivationCubit, ActivationState>(
+      'emits [Loading, Error] when empty key submitted',
+      build: () {
+        when(() => mockActivateDevice(''))
+            .thenThrow(const ValidationFailure('License key is required'));
+        return ActivationCubit(mockActivateDevice);
+      },
+      act: (cubit) => cubit.activate(''),
+      expect: () => [
+        isA<ActivationLoading>(),
+        isA<ActivationError>().having(
+          (s) => s.message,
+          'message',
+          'License key is required',
+        ),
+      ],
+    );
+
+    blocTest<ActivationCubit, ActivationState>(
+      'emits [Loading, Error] when invalid format submitted',
+      build: () {
+        when(() => mockActivateDevice('XXXXX'))
+            .thenThrow(const ValidationFailure('License key must start with "ACT-"'));
+        return ActivationCubit(mockActivateDevice);
+      },
+      act: (cubit) => cubit.activate('XXXXX'),
+      expect: () => [
+        isA<ActivationLoading>(),
+        isA<ActivationError>().having(
+          (s) => s.message,
+          'message',
+          contains('ACT-'),
+        ),
+      ],
+    );
+
+    blocTest<ActivationCubit, ActivationState>(
+      'emits [Loading, Error] when server fails',
+      build: () {
+        when(() => mockActivateDevice('ACT-99999'))
+            .thenThrow(const ServerFailure('Server unavailable'));
+        return ActivationCubit(mockActivateDevice);
+      },
+      act: (cubit) => cubit.activate('ACT-99999'),
+      expect: () => [
+        isA<ActivationLoading>(),
+        isA<ActivationError>().having(
+          (s) => s.message,
+          'message',
+          'Server unavailable',
+        ),
+      ],
+    );
+  });
+}

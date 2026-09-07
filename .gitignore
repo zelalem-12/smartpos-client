@@ -1,0 +1,19 @@
+# Flutter/Dart
+.dart_tool/
+.packages
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.swp
+
+# macOS
+.DS_Store
+**/.DS_Store
+
+# Pubspec lock (optional for apps, include for reproducibility)
+# pubspec.lock
