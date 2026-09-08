@@ -13,6 +13,7 @@ class AppTextField extends StatelessWidget {
   final int? maxLength;
   final ValueChanged<String>? onChanged;
   final bool readOnly;
+  final bool enabled;
   final Widget? suffixIcon;
 
   const AppTextField({
@@ -27,6 +28,7 @@ class AppTextField extends StatelessWidget {
     this.maxLength,
     this.onChanged,
     this.readOnly = false,
+    this.enabled = true,
     this.suffixIcon,
   });
 
@@ -51,6 +53,7 @@ class AppTextField extends StatelessWidget {
           maxLength: maxLength,
           onChanged: onChanged,
           readOnly: readOnly,
+          enabled: enabled,
           decoration: InputDecoration(
             hintText: hint,
             errorText: errorText,

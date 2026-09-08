@@ -13,7 +13,7 @@ void main() {
   late MockActivateDevice mockActivateDevice;
 
   const validConfig = StoreConfigEntity(
-    licenseKey: 'ACT-89412',
+    licenseKey: 'MOR-4A9K2L8Q',
     businessName: 'Bole Roasters Cafe PLC',
     tradeName: 'Bole Cafe',
     tin: '0012345678',
@@ -37,11 +37,11 @@ void main() {
     blocTest<ActivationCubit, ActivationState>(
       'emits [Loading, Success] when valid key submitted',
       build: () {
-        when(() => mockActivateDevice('ACT-89412'))
+        when(() => mockActivateDevice('MOR-4A9K2L8Q'))
             .thenAnswer((_) async => validConfig);
         return ActivationCubit(mockActivateDevice);
       },
-      act: (cubit) => cubit.activate('ACT-89412'),
+      act: (cubit) => cubit.activate('MOR-4A9K2L8Q'),
       expect: () => [
         isA<ActivationLoading>(),
         isA<ActivationSuccess>().having(
@@ -74,7 +74,7 @@ void main() {
       'emits [Loading, Error] when invalid format submitted',
       build: () {
         when(() => mockActivateDevice('XXXXX'))
-            .thenThrow(const ValidationFailure('License key must start with "ACT-"'));
+            .thenThrow(const ValidationFailure('License key must start with "MOR-"'));
         return ActivationCubit(mockActivateDevice);
       },
       act: (cubit) => cubit.activate('XXXXX'),
@@ -83,7 +83,7 @@ void main() {
         isA<ActivationError>().having(
           (s) => s.message,
           'message',
-          contains('ACT-'),
+          contains('MOR-'),
         ),
       ],
     );
@@ -91,11 +91,11 @@ void main() {
     blocTest<ActivationCubit, ActivationState>(
       'emits [Loading, Error] when server fails',
       build: () {
-        when(() => mockActivateDevice('ACT-99999'))
+        when(() => mockActivateDevice('MOR-00000000'))
             .thenThrow(const ServerFailure('Server unavailable'));
         return ActivationCubit(mockActivateDevice);
       },
-      act: (cubit) => cubit.activate('ACT-99999'),
+      act: (cubit) => cubit.activate('MOR-00000000'),
       expect: () => [
         isA<ActivationLoading>(),
         isA<ActivationError>().having(

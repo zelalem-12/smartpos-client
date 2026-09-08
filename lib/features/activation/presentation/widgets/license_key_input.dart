@@ -23,7 +23,7 @@ class LicenseKeyInput extends StatelessWidget {
   Widget build(BuildContext context) {
     return AppTextField(
       label: 'License Key',
-      hint: 'ACT-XXXXX',
+      hint: AppConstants.mockLicenseKey,
       controller: controller,
       errorText: errorText,
       readOnly: !enabled,

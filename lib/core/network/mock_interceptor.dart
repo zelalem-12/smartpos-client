@@ -1,4 +1,6 @@
 import 'package:dio/dio.dart';
+
+import '../constants/app_constants.dart';
 import 'api_endpoints.dart';
 
 /// Intercepts all HTTP requests and returns mock JSON responses.
@@ -12,11 +14,26 @@ class MockInterceptor extends Interceptor {
     final path = options.path;
 
     if (path.endsWith(ApiEndpoints.activateDevice)) {
+      final data = options.data as Map<String, dynamic>?;
+      final licenseKey = (data?['license_key'] as String? ?? '').toUpperCase();
+
+      if (licenseKey == AppConstants.mockLicenseKey) {
+        return handler.resolve(
+          Response(
+            requestOptions: options,
+            statusCode: 200,
+            data: _mockActivationResponse,
+          ),
+        );
+      }
+
       return handler.resolve(
         Response(
           requestOptions: options,
-          statusCode: 200,
-          data: _mockActivationResponse,
+          statusCode: 401,
+          data: {
+            'message': 'Invalid or unregistered license key',
+          },
         ),
       );
     }

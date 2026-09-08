@@ -9,6 +9,11 @@ import '../../features/activation/data/repositories/activation_repository_impl.d
 import '../../features/activation/domain/repositories/activation_repository.dart';
 import '../../features/activation/domain/usecases/activate_device.dart';
 import '../../features/activation/presentation/cubit/activation_cubit.dart';
+import '../../features/auth/data/datasources/auth_local_source.dart';
+import '../../features/auth/data/repositories/auth_repository_impl.dart';
+import '../../features/auth/domain/repositories/auth_repository.dart';
+import '../../features/auth/domain/usecases/create_manager.dart';
+import '../../features/auth/presentation/cubit/manager_setup_cubit.dart';
 import '../database/app_database.dart';
 import '../network/api_client.dart';
 import '../printer/mock_printer_service.dart';
@@ -83,7 +88,25 @@ Future<void> initDependencies() async {
     () => ActivationCubit(sl<ActivateDevice>()),
   );
 
-  // ─── Phase 3+ BLoCs ────────────────────────────────────────────────
+  // ─── Phase 3: Auth / Manager Setup ─────────────────────────────────
+
+  sl.registerLazySingleton<AuthLocalSource>(
+    () => AuthLocalSource(sl<AppDatabase>()),
+  );
+
+  sl.registerLazySingleton<AuthRepository>(
+    () => AuthRepositoryImpl(localSource: sl<AuthLocalSource>()),
+  );
+
+  sl.registerLazySingleton<CreateManager>(
+    () => CreateManager(sl<AuthRepository>()),
+  );
+
+  sl.registerFactory<ManagerSetupCubit>(
+    () => ManagerSetupCubit(sl<CreateManager>()),
+  );
+
+  // ─── Phase 4+ BLoCs ────────────────────────────────────────────────
   // (registered per-feature as they are implemented)
 }
 

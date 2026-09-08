@@ -51,27 +51,27 @@ void main() {
 
   group('ActivationRepositoryImpl', () {
     test('calls remote source then saves locally and returns entity', () async {
-      when(() => mockRemote.activateDevice('ACT-89412'))
+      when(() => mockRemote.activateDevice('MOR-4A9K2L8Q'))
           .thenAnswer((_) async => responseModel);
       when(() => mockLocal.saveStoreConfig(any()))
           .thenAnswer((_) async {});
 
-      final result = await repository.activateDevice('ACT-89412');
+      final result = await repository.activateDevice('MOR-4A9K2L8Q');
 
-      expect(result.licenseKey, 'ACT-89412');
+      expect(result.licenseKey, 'MOR-4A9K2L8Q');
       expect(result.tin, '0012345678');
       expect(result.businessName, 'Bole Roasters Cafe PLC');
 
-      verify(() => mockRemote.activateDevice('ACT-89412')).called(1);
+      verify(() => mockRemote.activateDevice('MOR-4A9K2L8Q')).called(1);
       verify(() => mockLocal.saveStoreConfig(any())).called(1);
     });
 
     test('does not save locally if remote fails', () async {
-      when(() => mockRemote.activateDevice('ACT-99999'))
+      when(() => mockRemote.activateDevice('MOR-00000000'))
           .thenThrow(Exception('Network error'));
 
       expect(
-        () => repository.activateDevice('ACT-99999'),
+        () => repository.activateDevice('MOR-00000000'),
         throwsA(isA<Exception>()),
       );
 

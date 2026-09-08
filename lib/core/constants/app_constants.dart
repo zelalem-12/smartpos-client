@@ -2,15 +2,17 @@
 class AppConstants {
   AppConstants._();
 
-  static const String appName = 'SmartPOS Ethiopia';
+  static const String appName = 'SmartPOS';
+  static const String appTagline = 'Sell Smarter. Stay Compliant.';
   static const String appVersion = '1.0.0';
 
   // Mock API base URL (will be replaced with real backend later)
   static const String apiBaseUrl = 'https://api.smartpos.et/v1';
 
-  // License key format: ACT-XXXXX (letters/digits)
-  static const String licenseKeyPrefix = 'ACT-';
-  static const int licenseKeyLength = 9; // ACT-XXXXX
+  // License key format: MOR-XXXXXXXX (8 random alphanumeric chars)
+  static const String licenseKeyPrefix = 'MOR-';
+  static const int licenseKeyLength = 12; // MOR- + 8 chars
+  static const String mockLicenseKey = 'MOR-4A9K2L8Q';
 
   // PIN configuration
   static const int pinLength = 4;

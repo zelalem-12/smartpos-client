@@ -61,14 +61,9 @@ class _ActivationPageState extends State<ActivationPage> {
               constraints: const BoxConstraints(maxWidth: 440),
               child: BlocConsumer<ActivationCubit, ActivationState>(
                 listener: (context, state) {
-                  if (state is ActivationSuccess) {
-                    // Brief delay to show the success card, then navigate
-                    Future.delayed(const Duration(seconds: 2), () {
-                      if (context.mounted) {
-                        context.go(AppRoutes.managerSetup);
-                      }
-                    });
-                  }
+                  // Navigation is now triggered manually by the user
+                  // tapping the "Set Up Manager Account" button on the
+                  // success card.
                 },
                 builder: (context, state) {
                   return Column(
@@ -80,7 +75,10 @@ class _ActivationPageState extends State<ActivationPage> {
 
                       if (state is ActivationSuccess)
                         // Success summary card
-                        ActivationProgress(storeConfig: state.storeConfig)
+                        ActivationProgress(
+                          storeConfig: state.storeConfig,
+                          onNext: () => context.go(AppRoutes.managerSetup),
+                        )
                       else
                         // Input card
                         _buildInputCard(context, theme, state),
@@ -122,7 +120,8 @@ class _ActivationPageState extends State<ActivationPage> {
         ),
         const SizedBox(height: 4),
         Text(
-          'E-Invoicing System (Model 1)',
+          AppConstants.appTagline,
+          textAlign: TextAlign.center,
           style: theme.textTheme.bodyMedium?.copyWith(
             color: AppColors.textSecondary,
           ),
@@ -154,7 +153,7 @@ class _ActivationPageState extends State<ActivationPage> {
             ),
             const SizedBox(height: 4),
             Text(
-              'Enter the license key provided by your distributor to activate this POS terminal.',
+              'Fast, reliable point of sale and e-invoicing for Ethiopian businesses — online or offline.',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: AppColors.textSecondary,
               ),

@@ -12,7 +12,7 @@ void main() {
   late MockActivationRepository mockRepo;
 
   const validConfig = StoreConfigEntity(
-    licenseKey: 'ACT-89412',
+    licenseKey: 'MOR-4A9K2L8Q',
     businessName: 'Bole Roasters Cafe PLC',
     tradeName: 'Bole Cafe',
     tin: '0012345678',
@@ -29,23 +29,23 @@ void main() {
 
   group('ActivateDevice', () {
     test('returns StoreConfigEntity on valid key', () async {
-      when(() => mockRepo.activateDevice('ACT-89412'))
+      when(() => mockRepo.activateDevice('MOR-4A9K2L8Q'))
           .thenAnswer((_) async => validConfig);
 
-      final result = await useCase('ACT-89412');
+      final result = await useCase('MOR-4A9K2L8Q');
 
       expect(result, validConfig);
-      verify(() => mockRepo.activateDevice('ACT-89412')).called(1);
+      verify(() => mockRepo.activateDevice('MOR-4A9K2L8Q')).called(1);
     });
 
     test('trims and uppercases the key', () async {
-      when(() => mockRepo.activateDevice('ACT-89412'))
+      when(() => mockRepo.activateDevice('MOR-4A9K2L8Q'))
           .thenAnswer((_) async => validConfig);
 
-      final result = await useCase('  act-89412  ');
+      final result = await useCase('  mor-4a9k2l8q  ');
 
       expect(result, validConfig);
-      verify(() => mockRepo.activateDevice('ACT-89412')).called(1);
+      verify(() => mockRepo.activateDevice('MOR-4A9K2L8Q')).called(1);
     });
 
     test('throws ValidationFailure on empty key', () async {
@@ -68,45 +68,45 @@ void main() {
       );
     });
 
-    test('throws ValidationFailure when key does not start with ACT-', () async {
+    test('throws ValidationFailure when key does not start with MOR-', () async {
       expect(
-        () => useCase('XYZ-12345'),
+        () => useCase('XYZ-12345678'),
         throwsA(isA<ValidationFailure>().having(
           (f) => f.message,
           'message',
-          contains('ACT-'),
+          contains('MOR-'),
         )),
       );
     });
 
     test('throws ValidationFailure when key is too short', () async {
       expect(
-        () => useCase('ACT-123'),
+        () => useCase('MOR-123'),
         throwsA(isA<ValidationFailure>().having(
           (f) => f.message,
           'message',
-          contains('9 characters'),
+          contains('12 characters'),
         )),
       );
     });
 
     test('throws ValidationFailure when key is too long', () async {
       expect(
-        () => useCase('ACT-1234567'),
+        () => useCase('MOR-123456789'),
         throwsA(isA<ValidationFailure>().having(
           (f) => f.message,
           'message',
-          contains('9 characters'),
+          contains('12 characters'),
         )),
       );
     });
 
     test('propagates ServerFailure from repository', () async {
-      when(() => mockRepo.activateDevice('ACT-99999'))
+      when(() => mockRepo.activateDevice('MOR-00000000'))
           .thenThrow(const ServerFailure('Server unavailable'));
 
       expect(
-        () => useCase('ACT-99999'),
+        () => useCase('MOR-00000000'),
         throwsA(isA<ServerFailure>()),
       );
     });

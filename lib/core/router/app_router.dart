@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../features/activation/presentation/cubit/activation_cubit.dart';
 import '../../features/activation/presentation/pages/activation_page.dart';
+import '../../features/auth/presentation/cubit/manager_setup_cubit.dart';
+import '../../features/auth/presentation/pages/manager_setup_page.dart';
 import '../di/injection.dart';
 import '../services/session_service.dart';
 
@@ -66,8 +68,10 @@ GoRouter createRouter() {
       ),
       GoRoute(
         path: AppRoutes.managerSetup,
-        builder: (context, state) =>
-            const _PlaceholderPage(title: 'Manager Setup'),
+        builder: (context, state) => BlocProvider(
+          create: (_) => sl<ManagerSetupCubit>(),
+          child: const ManagerSetupPage(),
+        ),
       ),
       GoRoute(
         path: AppRoutes.pinLogin,

@@ -36,8 +36,11 @@ void main() {
       await tester.pumpWidget(buildSubject());
 
       // Branding
-      expect(find.text('SmartPOS Ethiopia'), findsOneWidget);
-      expect(find.text('E-Invoicing System (Model 1)'), findsOneWidget);
+      expect(find.text('SmartPOS'), findsOneWidget);
+      expect(
+        find.text('Sell Smarter. Stay Compliant.'),
+        findsOneWidget,
+      );
 
       // Input
       expect(find.text('License Key'), findsOneWidget);
@@ -66,9 +69,9 @@ void main() {
       expect(find.text('Invalid license key format'), findsOneWidget);
     });
 
-    testWidgets('shows success card on success state', (tester) async {
+    testWidgets('shows success card with setup manager button', (tester) async {
       const config = StoreConfigEntity(
-        licenseKey: 'ACT-89412',
+        licenseKey: 'MOR-4A9K2L8Q',
         businessName: 'Bole Roasters Cafe PLC',
         tradeName: 'Bole Cafe',
         tin: '0012345678',
@@ -85,9 +88,10 @@ void main() {
       await tester.pumpWidget(buildSubject());
 
       expect(find.byType(ActivationProgress), findsOneWidget);
-      expect(find.text('Device Activated'), findsOneWidget);
+      expect(find.text('Activation Complete'), findsOneWidget);
       expect(find.text('Bole Roasters Cafe PLC'), findsOneWidget);
       expect(find.text('0012345678'), findsOneWidget);
+      expect(find.text('Set Up Manager Account'), findsOneWidget);
     });
 
     testWidgets('calls activate on cubit when button tapped', (tester) async {
@@ -97,14 +101,14 @@ void main() {
       await tester.pumpWidget(buildSubject());
 
       // Type a license key
-      await tester.enterText(find.byType(TextField), 'ACT-89412');
+      await tester.enterText(find.byType(TextField), 'MOR-4A9K2L8Q');
       await tester.pump();
 
       // Tap the Activate button
       await tester.tap(find.text('Activate'));
       await tester.pump();
 
-      verify(() => mockCubit.activate('ACT-89412')).called(1);
+      verify(() => mockCubit.activate('MOR-4A9K2L8Q')).called(1);
     });
   });
 }
