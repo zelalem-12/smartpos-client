@@ -27,21 +27,58 @@ void main() {
   }
 
   group('ManagerSetupPage', () {
-    testWidgets('renders name input and Create 4-Digit PIN section',
-        (tester) async {
+    testWidgets('renders username, full name, and password fields', (
+      tester,
+    ) async {
       when(() => mockCubit.state).thenReturn(const ManagerSetupInitial());
 
       await tester.pumpWidget(buildSubject());
 
       expect(find.text('Manager Setup'), findsOneWidget);
       expect(find.text('Create the first manager account.'), findsOneWidget);
-      expect(find.text('Manager Name'), findsOneWidget);
-      expect(find.text('Create 4-Digit PIN'), findsOneWidget);
+      expect(find.text('Username'), findsOneWidget);
+      expect(find.text('Full Name'), findsOneWidget);
+      expect(find.text('Password'), findsOneWidget);
+      expect(find.text('Confirm Password'), findsOneWidget);
       expect(find.text('Create Manager'), findsOneWidget);
     });
 
-    testWidgets('shows loading when state is ManagerSetupLoading',
-        (tester) async {
+    testWidgets('submits form when Create Manager is tapped', (tester) async {
+      when(() => mockCubit.state).thenReturn(const ManagerSetupInitial());
+      when(
+        () => mockCubit.submit(
+          username: any(named: 'username'),
+          fullName: any(named: 'fullName'),
+          password: any(named: 'password'),
+          confirmPassword: any(named: 'confirmPassword'),
+        ),
+      ).thenAnswer((_) async {});
+
+      await tester.pumpWidget(buildSubject());
+
+      final textFields = find.byType(TextField);
+      await tester.enterText(textFields.at(0), 'abebe01');
+      await tester.enterText(textFields.at(1), 'Abebe Bikila');
+      await tester.enterText(textFields.at(2), '1234');
+      await tester.enterText(textFields.at(3), '1234');
+      await tester.pump();
+
+      await tester.tap(find.text('Create Manager'));
+      await tester.pump();
+
+      verify(
+        () => mockCubit.submit(
+          username: 'abebe01',
+          fullName: 'Abebe Bikila',
+          password: '1234',
+          confirmPassword: '1234',
+        ),
+      ).called(1);
+    });
+
+    testWidgets('shows loading when state is ManagerSetupLoading', (
+      tester,
+    ) async {
       when(() => mockCubit.state).thenReturn(const ManagerSetupLoading());
 
       await tester.pumpWidget(buildSubject());
@@ -51,11 +88,11 @@ void main() {
 
     testWidgets('displays error message on ManagerSetupError', (tester) async {
       when(() => mockCubit.state)
-          .thenReturn(const ManagerSetupError('PINs do not match'));
+          .thenReturn(const ManagerSetupError('Passwords do not match'));
 
       await tester.pumpWidget(buildSubject());
 
-      expect(find.text('PINs do not match'), findsOneWidget);
+      expect(find.text('Passwords do not match'), findsOneWidget);
     });
   });
 }

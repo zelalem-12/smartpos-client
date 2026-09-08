@@ -12,9 +12,11 @@ class AppTextField extends StatelessWidget {
   final List<TextInputFormatter>? inputFormatters;
   final int? maxLength;
   final ValueChanged<String>? onChanged;
+  final ValueChanged<String>? onSubmitted;
   final bool readOnly;
   final bool enabled;
   final Widget? suffixIcon;
+  final TextInputAction? textInputAction;
 
   const AppTextField({
     super.key,
@@ -27,9 +29,11 @@ class AppTextField extends StatelessWidget {
     this.inputFormatters,
     this.maxLength,
     this.onChanged,
+    this.onSubmitted,
     this.readOnly = false,
     this.enabled = true,
     this.suffixIcon,
+    this.textInputAction,
   });
 
   @override
@@ -40,18 +44,19 @@ class AppTextField extends StatelessWidget {
       children: [
         Text(
           label,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w500,
-              ),
+          style: Theme.of(context).textTheme.bodyMedium
+              ?.copyWith(fontWeight: FontWeight.w500),
         ),
         const SizedBox(height: 6),
         TextField(
           controller: controller,
           obscureText: obscureText,
           keyboardType: keyboardType,
+          textInputAction: textInputAction,
           inputFormatters: inputFormatters,
           maxLength: maxLength,
           onChanged: onChanged,
+          onSubmitted: onSubmitted,
           readOnly: readOnly,
           enabled: enabled,
           decoration: InputDecoration(

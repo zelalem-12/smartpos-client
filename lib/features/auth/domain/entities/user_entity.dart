@@ -6,18 +6,20 @@ import 'package:equatable/equatable.dart';
 /// and cubits work with this entity; the data layer maps to/from it.
 class UserEntity extends Equatable {
   final String id;
-  final String name;
+  final String username;
+  final String fullName;
   final String role;
-  final String pinHash;
+  final String passwordHash;
   final bool isActive;
   final DateTime createdAt;
   final DateTime? updatedAt;
 
   const UserEntity({
     required this.id,
-    required this.name,
+    required this.username,
+    required this.fullName,
     required this.role,
-    required this.pinHash,
+    required this.passwordHash,
     required this.isActive,
     required this.createdAt,
     this.updatedAt,
@@ -31,12 +33,13 @@ class UserEntity extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        name,
-        role,
-        pinHash,
-        isActive,
-        createdAt,
-        updatedAt,
-      ];
+    id,
+    username,
+    fullName,
+    role,
+    passwordHash,
+    isActive,
+    createdAt,
+    updatedAt,
+  ];
 }

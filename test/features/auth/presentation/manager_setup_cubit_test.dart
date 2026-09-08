@@ -14,9 +14,10 @@ void main() {
 
   final manager = UserEntity(
     id: 'abc-123',
-    name: 'Abebe Bikila',
+    username: 'abebe01',
+    fullName: 'Abebe Bikila',
     role: 'MANAGER',
-    pinHash: 'hashed',
+    passwordHash: 'hashed',
     isActive: true,
     createdAt: DateTime(2026, 9, 8),
   );
@@ -35,39 +36,46 @@ void main() {
     blocTest<ManagerSetupCubit, ManagerSetupState>(
       'emits [Loading, Success] when creation succeeds',
       build: () {
-        when(() => mockCreateManager(name: 'Abebe Bikila', pin: '1234'))
-            .thenAnswer((_) async => manager);
+        when(
+          () => mockCreateManager(
+            username: 'abebe01',
+            fullName: 'Abebe Bikila',
+            password: '1234',
+          ),
+        ).thenAnswer((_) async => manager);
         return ManagerSetupCubit(mockCreateManager);
       },
       act: (cubit) => cubit.submit(
-        name: 'Abebe Bikila',
-        pin: '1234',
-        confirmPin: '1234',
+        username: 'abebe01',
+        fullName: 'Abebe Bikila',
+        password: '1234',
+        confirmPassword: '1234',
       ),
       expect: () => [
         isA<ManagerSetupLoading>(),
         isA<ManagerSetupSuccess>().having(
-          (s) => s.manager.name,
-          'name',
+          (s) => s.manager.fullName,
+          'fullName',
           'Abebe Bikila',
         ),
       ],
     );
 
     blocTest<ManagerSetupCubit, ManagerSetupState>(
-      'emits [Loading, Error] when PINs do not match',
+      'emits [Loading, Error] when passwords do not match',
       build: () => ManagerSetupCubit(mockCreateManager),
       act: (cubit) => cubit.submit(
-        name: 'Abebe Bikila',
-        pin: '1234',
-        confirmPin: '4321',
+        username: 'abebe01',
+        fullName: 'Abebe Bikila',
+        password: '1234',
+        confirmPassword: '4321',
       ),
       expect: () => [
         isA<ManagerSetupLoading>(),
         isA<ManagerSetupError>().having(
           (s) => s.message,
           'message',
-          'PINs do not match',
+          'Passwords do not match',
         ),
       ],
     );
@@ -75,21 +83,27 @@ void main() {
     blocTest<ManagerSetupCubit, ManagerSetupState>(
       'emits [Loading, Error] when use case throws ValidationFailure',
       build: () {
-        when(() => mockCreateManager(name: 'A', pin: '1234'))
-            .thenThrow(const ValidationFailure('Manager name must be at least 2 characters'));
+        when(
+          () => mockCreateManager(
+            username: any(named: 'username'),
+            fullName: any(named: 'fullName'),
+            password: any(named: 'password'),
+          ),
+        ).thenThrow(const ValidationFailure('Username is required'));
         return ManagerSetupCubit(mockCreateManager);
       },
       act: (cubit) => cubit.submit(
-        name: 'A',
-        pin: '1234',
-        confirmPin: '1234',
+        username: '',
+        fullName: 'Abebe Bikila',
+        password: '1234',
+        confirmPassword: '1234',
       ),
       expect: () => [
         isA<ManagerSetupLoading>(),
         isA<ManagerSetupError>().having(
           (s) => s.message,
           'message',
-          contains('2 characters'),
+          'Username is required',
         ),
       ],
     );
@@ -97,14 +111,20 @@ void main() {
     blocTest<ManagerSetupCubit, ManagerSetupState>(
       'emits [Loading, Error] when manager already exists',
       build: () {
-        when(() => mockCreateManager(name: 'Abebe Bikila', pin: '1234'))
-            .thenThrow(const ConflictFailure('A manager already exists'));
+        when(
+          () => mockCreateManager(
+            username: any(named: 'username'),
+            fullName: any(named: 'fullName'),
+            password: any(named: 'password'),
+          ),
+        ).thenThrow(const ConflictFailure('A manager already exists'));
         return ManagerSetupCubit(mockCreateManager);
       },
       act: (cubit) => cubit.submit(
-        name: 'Abebe Bikila',
-        pin: '1234',
-        confirmPin: '1234',
+        username: 'abebe01',
+        fullName: 'Abebe Bikila',
+        password: '1234',
+        confirmPassword: '1234',
       ),
       expect: () => [
         isA<ManagerSetupLoading>(),

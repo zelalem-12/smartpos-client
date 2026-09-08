@@ -1,4 +1,5 @@
 import 'dart:convert';
+
 import 'package:crypto/crypto.dart';
 
 /// SHA-256 fiscal hash chaining for invoice tamper detection.
@@ -30,7 +31,11 @@ class HashChain {
   ///
   /// Returns true if the hash matches the expected value for the given
   /// previous hash and invoice JSON.
-  static bool verifyHash(String expectedHash, String previousHash, String invoiceJson) {
+  static bool verifyHash(
+    String expectedHash,
+    String previousHash,
+    String invoiceJson,
+  ) {
     final computed = computeHash(previousHash, invoiceJson);
     return computed == expectedHash;
   }

@@ -7,9 +7,7 @@ void main() {
     testWidgets('renders label text', (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
-          home: Scaffold(
-            body: AppButton(label: 'Activate'),
-          ),
+          home: Scaffold(body: AppButton(label: 'Activate')),
         ),
       );
 
@@ -22,10 +20,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: AppButton(
-              label: 'Activate',
-              onPressed: () => tapped = true,
-            ),
+            body: AppButton(label: 'Activate', onPressed: () => tapped = true),
           ),
         ),
       );
@@ -34,12 +29,12 @@ void main() {
       expect(tapped, isTrue);
     });
 
-    testWidgets('does not call onPressed when disabled (null callback)', (tester) async {
+    testWidgets('does not call onPressed when disabled (null callback)', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         const MaterialApp(
-          home: Scaffold(
-            body: AppButton(label: 'Disabled'),
-          ),
+          home: Scaffold(body: AppButton(label: 'Disabled')),
         ),
       );
 
@@ -51,9 +46,7 @@ void main() {
     testWidgets('shows CircularProgressIndicator when loading', (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
-          home: Scaffold(
-            body: AppButton(label: 'Loading', isLoading: true),
-          ),
+          home: Scaffold(body: AppButton(label: 'Loading', isLoading: true)),
         ),
       );
 

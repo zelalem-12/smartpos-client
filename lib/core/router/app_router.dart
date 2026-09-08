@@ -4,38 +4,51 @@ import 'package:go_router/go_router.dart';
 
 import '../../features/activation/presentation/cubit/activation_cubit.dart';
 import '../../features/activation/presentation/pages/activation_page.dart';
+import '../../features/auth/presentation/cubit/login_cubit.dart';
 import '../../features/auth/presentation/cubit/manager_setup_cubit.dart';
+import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/auth/presentation/pages/manager_setup_page.dart';
+import '../../features/catalog/presentation/bloc/catalog_bloc.dart';
+import '../../features/catalog/presentation/bloc/catalog_event.dart';
+import '../../features/catalog/presentation/pages/catalog_management_page.dart';
+import '../../features/invoice/presentation/cubit/checkout_cubit.dart';
+import '../../features/invoice/presentation/pages/checkout_page.dart';
+import '../../features/pos/presentation/bloc/cart_bloc.dart';
+import '../../features/pos/presentation/bloc/cart_event.dart';
+import '../../features/pos/presentation/bloc/pos_bloc.dart';
+import '../../features/pos/presentation/bloc/pos_event.dart';
+import '../../features/pos/presentation/pages/manager_dashboard_page.dart';
+import '../../features/pos/presentation/pages/pos_page.dart';
 import '../di/injection.dart';
 import '../services/session_service.dart';
-
-/// Route path constants.
-class AppRoutes {
-  AppRoutes._();
-  static const String activation = '/activation';
-  static const String managerSetup = '/manager-setup';
-  static const String pinLogin = '/pin-login';
-  static const String pos = '/pos';
-  static const String checkout = '/checkout';
-  static const String receipt = '/receipt';
-  static const String catalog = '/catalog';
-  static const String creditNotes = '/credit-notes';
-  static const String cancellation = '/cancellation';
-  static const String reports = '/reports';
-  static const String syncQueue = '/sync-queue';
-  static const String audit = '/audit';
-  static const String settings = '/settings';
-}
+import 'app_routes.dart';
 
 /// Placeholder page shown until the real screen is implemented.
 class _PlaceholderPage extends StatelessWidget {
   final String title;
   const _PlaceholderPage({required this.title});
 
+  void _safePop(BuildContext context) {
+    final router = GoRouter.of(context);
+    if (router.canPop()) {
+      router.pop();
+    } else {
+      final home = sl<SessionService>().homeRoute ?? AppRoutes.login;
+      router.go(home);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(title)),
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => _safePop(context),
+          tooltip: 'Back',
+        ),
+        title: Text(title),
+      ),
       body: Center(
         child: Text(
           '$title\n(Coming soon)',
@@ -53,7 +66,7 @@ class _PlaceholderPage extends StatelessWidget {
 /// See [SessionService.evaluateRedirect] for the full flow.
 GoRouter createRouter() {
   return GoRouter(
-    initialLocation: AppRoutes.activation,
+    initialLocation: AppRoutes.login,
     redirect: (context, state) {
       final session = sl<SessionService>();
       return session.evaluateRedirect(state.matchedLocation);
@@ -74,29 +87,45 @@ GoRouter createRouter() {
         ),
       ),
       GoRoute(
-        path: AppRoutes.pinLogin,
-        builder: (context, state) =>
-            const _PlaceholderPage(title: 'PIN Login'),
+        path: AppRoutes.login,
+        builder: (context, state) => BlocProvider(
+          create: (_) => sl<LoginCubit>(),
+          child: const LoginPage(),
+        ),
       ),
       GoRoute(
         path: AppRoutes.pos,
-        builder: (context, state) =>
-            const _PlaceholderPage(title: 'POS Terminal'),
+        builder: (context, state) => MultiBlocProvider(
+          providers: [
+            BlocProvider(
+              create: (_) => sl<PosBloc>()..add(const LoadPosCatalog()),
+            ),
+            BlocProvider(create: (_) => sl<CartBloc>()..add(const LoadCart())),
+          ],
+          child: const PosPage(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.manager,
+        builder: (context, state) => const ManagerDashboardPage(),
       ),
       GoRoute(
         path: AppRoutes.checkout,
-        builder: (context, state) =>
-            const _PlaceholderPage(title: 'Checkout'),
+        builder: (context, state) => BlocProvider(
+          create: (_) => sl<CheckoutCubit>(),
+          child: const CheckoutPage(),
+        ),
       ),
       GoRoute(
         path: AppRoutes.receipt,
-        builder: (context, state) =>
-            const _PlaceholderPage(title: 'Receipt'),
+        builder: (context, state) => const _PlaceholderPage(title: 'Receipt'),
       ),
       GoRoute(
         path: AppRoutes.catalog,
-        builder: (context, state) =>
-            const _PlaceholderPage(title: 'Catalog Management'),
+        builder: (context, state) => BlocProvider(
+          create: (_) => sl<CatalogBloc>()..add(const LoadCatalog()),
+          child: const CatalogManagementPage(),
+        ),
       ),
       GoRoute(
         path: AppRoutes.creditNotes,
@@ -110,8 +139,7 @@ GoRouter createRouter() {
       ),
       GoRoute(
         path: AppRoutes.reports,
-        builder: (context, state) =>
-            const _PlaceholderPage(title: 'Reports'),
+        builder: (context, state) => const _PlaceholderPage(title: 'Reports'),
       ),
       GoRoute(
         path: AppRoutes.syncQueue,
@@ -122,6 +150,10 @@ GoRouter createRouter() {
         path: AppRoutes.audit,
         builder: (context, state) =>
             const _PlaceholderPage(title: 'Audit Trail'),
+      ),
+      GoRoute(
+        path: AppRoutes.settings,
+        builder: (context, state) => const _PlaceholderPage(title: 'Settings'),
       ),
     ],
   );

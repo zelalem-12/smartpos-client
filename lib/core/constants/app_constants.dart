@@ -21,5 +21,6 @@ class AppConstants {
   static const int maxOfflineDays = 7;
 
   // Receipt
-  static const String duplicateWatermark = '*** DUPLICATE COPY / \u12F5\u130B\u121A \u12E8\u1273\u1270\u1218 ***';
+  static const String duplicateWatermark =
+      '*** DUPLICATE COPY / \u12F5\u130B\u121A \u12E8\u1273\u1270\u1218 ***';
 }

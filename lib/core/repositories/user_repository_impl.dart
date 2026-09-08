@@ -5,7 +5,7 @@ import 'user_repository.dart';
 ///
 /// Delegates all operations to the Drift [AppDatabase].
 /// When a remote sync layer is needed, compose this with
-/// a remote data source in a higher-level repository.
+/// a higher-level repository that also calls a remote source.
 class UserRepositoryImpl implements UserRepository {
   final AppDatabase _db;
 
@@ -27,6 +27,6 @@ class UserRepositoryImpl implements UserRepository {
   Future<bool> hasManager() => _db.hasManager();
 
   @override
-  Future<User?> findUserByPinHash(String pinHash) =>
-      _db.findUserByPinHash(pinHash);
+  Future<User?> findUserByUsername(String username) =>
+      _db.findUserByUsername(username);
 }

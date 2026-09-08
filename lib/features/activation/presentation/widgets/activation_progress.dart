@@ -9,11 +9,7 @@ class ActivationProgress extends StatelessWidget {
   final StoreConfigEntity storeConfig;
   final VoidCallback? onNext;
 
-  const ActivationProgress({
-    super.key,
-    required this.storeConfig,
-    this.onNext,
-  });
+  const ActivationProgress({super.key, required this.storeConfig, this.onNext});
 
   @override
   Widget build(BuildContext context) {
@@ -34,11 +30,7 @@ class ActivationProgress extends StatelessWidget {
                 color: AppColors.success,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
-                Icons.check,
-                color: Colors.white,
-                size: 36,
-              ),
+              child: const Icon(Icons.check, color: Colors.white, size: 36),
             ),
             const SizedBox(height: 16),
             Text(

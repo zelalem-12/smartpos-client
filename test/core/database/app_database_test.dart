@@ -69,15 +69,17 @@ void main() {
       await db.insertUser(
         UsersCompanion.insert(
           id: 'mgr-001',
-          name: 'Abebe Bikila',
+          username: 'abebe01',
+          fullName: 'Abebe Bikila',
           role: 'MANAGER',
-          pinHash: 'abc123hash',
+          passwordHash: 'abc123hash',
         ),
       );
 
       final user = await db.getUserById('mgr-001');
       expect(user, isNotNull);
-      expect(user!.name, 'Abebe Bikila');
+      expect(user!.username, 'abebe01');
+      expect(user.fullName, 'Abebe Bikila');
       expect(user.role, 'MANAGER');
       expect(user.isActive, isTrue);
     });
@@ -90,9 +92,10 @@ void main() {
       await db.insertUser(
         UsersCompanion.insert(
           id: 'mgr-001',
-          name: 'Abebe Bikila',
+          username: 'abebe01',
+          fullName: 'Abebe Bikila',
           role: 'MANAGER',
-          pinHash: 'abc123hash',
+          passwordHash: 'abc123hash',
         ),
       );
 
@@ -103,9 +106,10 @@ void main() {
       await db.insertUser(
         UsersCompanion.insert(
           id: 'mgr-001',
-          name: 'Abebe Bikila',
+          username: 'abebe01',
+          fullName: 'Abebe Bikila',
           role: 'MANAGER',
-          pinHash: 'abc123hash',
+          passwordHash: 'abc123hash',
           isActive: const Value(false),
         ),
       );
@@ -113,41 +117,44 @@ void main() {
       expect(await db.hasManager(), isFalse);
     });
 
-    test('findUserByPinHash returns correct user', () async {
+    test('findUserByUsername returns correct user', () async {
       await db.insertUser(
         UsersCompanion.insert(
           id: 'csh-001',
-          name: 'Selam Teshale',
+          username: 'selam_t',
+          fullName: 'Selam Teshale',
           role: 'CASHIER',
-          pinHash: 'pin1111hash',
+          passwordHash: 'pin1111hash',
         ),
       );
       await db.insertUser(
         UsersCompanion.insert(
           id: 'csh-002',
-          name: 'Dawit Kebede',
+          username: 'dawit_k',
+          fullName: 'Dawit Kebede',
           role: 'CASHIER',
-          pinHash: 'pin2222hash',
+          passwordHash: 'pin2222hash',
         ),
       );
 
-      final user = await db.findUserByPinHash('pin2222hash');
+      final user = await db.findUserByUsername('dawit_k');
       expect(user, isNotNull);
-      expect(user!.name, 'Dawit Kebede');
+      expect(user!.fullName, 'Dawit Kebede');
     });
 
-    test('findUserByPinHash returns null for inactive user', () async {
+    test('findUserByUsername returns null for inactive user', () async {
       await db.insertUser(
         UsersCompanion.insert(
           id: 'csh-001',
-          name: 'Inactive User',
+          username: 'inactive',
+          fullName: 'Inactive User',
           role: 'CASHIER',
-          pinHash: 'inactivehash',
+          passwordHash: 'inactivehash',
           isActive: const Value(false),
         ),
       );
 
-      final user = await db.findUserByPinHash('inactivehash');
+      final user = await db.findUserByUsername('inactive');
       expect(user, isNull);
     });
 
@@ -155,24 +162,202 @@ void main() {
       await db.insertUser(
         UsersCompanion.insert(
           id: 'u1',
-          name: 'Active',
+          username: 'active',
+          fullName: 'Active',
           role: 'CASHIER',
-          pinHash: 'h1',
+          passwordHash: 'h1',
         ),
       );
       await db.insertUser(
         UsersCompanion.insert(
           id: 'u2',
-          name: 'Inactive',
+          username: 'inactive',
+          fullName: 'Inactive',
           role: 'CASHIER',
-          pinHash: 'h2',
+          passwordHash: 'h2',
           isActive: const Value(false),
         ),
       );
 
       final users = await db.getActiveUsers();
       expect(users.length, 1);
-      expect(users.first.name, 'Active');
+      expect(users.first.username, 'active');
+    });
+  });
+
+  group('Categories', () {
+    test('getAllCategories returns empty on fresh database', () async {
+      final categories = await db.getAllCategories();
+      expect(categories, isEmpty);
+    });
+
+    test('upsertCategory inserts and getCategoryById retrieves', () async {
+      await db.upsertCategory(
+        CategoriesCompanion.insert(
+          id: 'cat-beverages',
+          name: 'Beverages',
+          description: const Value('Hot and cold drinks'),
+        ),
+      );
+
+      final category = await db.getCategoryById('cat-beverages');
+      expect(category, isNotNull);
+      expect(category!.name, 'Beverages');
+      expect(category.isActive, isTrue);
+    });
+
+    test('getAllCategories orders by name', () async {
+      await db.upsertCategory(
+        CategoriesCompanion.insert(id: 'cat-z', name: 'Zoo'),
+      );
+      await db.upsertCategory(
+        CategoriesCompanion.insert(id: 'cat-a', name: 'Animals'),
+      );
+
+      final categories = await db.getAllCategories();
+      expect(categories.first.name, 'Animals');
+      expect(categories.last.name, 'Zoo');
+    });
+  });
+
+  group('Products', () {
+    test('insertProduct and getProductById retrieves', () async {
+      await db.upsertCategory(
+        CategoriesCompanion.insert(id: 'cat-beverages', name: 'Beverages'),
+      );
+      await db.insertProduct(
+        ProductsCompanion.insert(
+          id: 'prod-1',
+          categoryId: 'cat-beverages',
+          name: 'Ethiopian Coffee',
+          barcode: 'ETH-COFFEE-001',
+          price: 35.0,
+          unit: 'cup',
+        ),
+      );
+
+      final product = await db.getProductById('prod-1');
+      expect(product, isNotNull);
+      expect(product!.name, 'Ethiopian Coffee');
+      expect(product.price, 35.0);
+      expect(product.isActive, isTrue);
+    });
+
+    test('searchProducts filters by name and barcode', () async {
+      await db.upsertCategory(
+        CategoriesCompanion.insert(id: 'cat-beverages', name: 'Beverages'),
+      );
+      await db.insertProduct(
+        ProductsCompanion.insert(
+          id: 'prod-1',
+          categoryId: 'cat-beverages',
+          name: 'Ethiopian Coffee',
+          barcode: 'ETH-COFFEE-001',
+          price: 35.0,
+          unit: 'cup',
+        ),
+      );
+      await db.insertProduct(
+        ProductsCompanion.insert(
+          id: 'prod-2',
+          categoryId: 'cat-beverages',
+          name: 'Macchiato',
+          barcode: 'ETH-MAC-002',
+          price: 40.0,
+          unit: 'cup',
+        ),
+      );
+
+      final byName = await db.searchProducts('coffee');
+      expect(byName.length, 1);
+      expect(byName.first.barcode, 'ETH-COFFEE-001');
+
+      final byBarcode = await db.searchProducts('ETH-MAC');
+      expect(byBarcode.length, 1);
+      expect(byBarcode.first.name, 'Macchiato');
+    });
+
+    test('updateProduct modifies product', () async {
+      await db.upsertCategory(
+        CategoriesCompanion.insert(id: 'cat-beverages', name: 'Beverages'),
+      );
+      await db.insertProduct(
+        ProductsCompanion.insert(
+          id: 'prod-1',
+          categoryId: 'cat-beverages',
+          name: 'Ethiopian Coffee',
+          barcode: 'ETH-COFFEE-001',
+          price: 35.0,
+          unit: 'cup',
+        ),
+      );
+
+      final updated = await db.updateProduct(
+        const ProductsCompanion(
+          id: Value('prod-1'),
+          name: Value('Premium Coffee'),
+          price: Value(50.0),
+        ),
+      );
+      expect(updated, isTrue);
+
+      final product = await db.getProductById('prod-1');
+      expect(product!.name, 'Premium Coffee');
+      expect(product.price, 50.0);
+    });
+
+    test('findProductByBarcode returns correct product', () async {
+      await db.upsertCategory(
+        CategoriesCompanion.insert(id: 'cat-beverages', name: 'Beverages'),
+      );
+      await db.insertProduct(
+        ProductsCompanion.insert(
+          id: 'prod-1',
+          categoryId: 'cat-beverages',
+          name: 'Ethiopian Coffee',
+          barcode: 'ETH-COFFEE-001',
+          price: 35.0,
+          unit: 'cup',
+        ),
+      );
+
+      final product = await db.findProductByBarcode('ETH-COFFEE-001');
+      expect(product, isNotNull);
+      expect(product!.name, 'Ethiopian Coffee');
+    });
+
+    test('duplicate barcode insert throws', () async {
+      await db.upsertCategory(
+        CategoriesCompanion.insert(id: 'cat-beverages', name: 'Beverages'),
+      );
+      await db.insertProduct(
+        ProductsCompanion.insert(
+          id: 'prod-1',
+          categoryId: 'cat-beverages',
+          name: 'Ethiopian Coffee',
+          barcode: 'ETH-COFFEE-001',
+          price: 35.0,
+          unit: 'cup',
+        ),
+      );
+
+      expect(
+        () => db.insertProduct(
+          ProductsCompanion.insert(
+            id: 'prod-2',
+            categoryId: 'cat-beverages',
+            name: 'Another Coffee',
+            barcode: 'ETH-COFFEE-001',
+            price: 30.0,
+            unit: 'cup',
+          ),
+        ),
+        throwsA(isA<Exception>()),
+      );
+    });
+
+    test('countProducts returns zero on fresh database', () async {
+      expect(await db.countProducts(), 0);
     });
   });
 }

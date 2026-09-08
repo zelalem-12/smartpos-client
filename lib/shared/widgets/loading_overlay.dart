@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../core/theme/app_colors.dart';
 
 /// Semi-transparent loading overlay with a spinner.
@@ -29,9 +30,7 @@ class LoadingOverlay extends StatelessWidget {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const CircularProgressIndicator(
-                        color: AppColors.accent,
-                      ),
+                      const CircularProgressIndicator(color: AppColors.accent),
                       if (message != null) ...[
                         const SizedBox(height: 16),
                         Text(

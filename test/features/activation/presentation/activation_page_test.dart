@@ -29,18 +29,16 @@ void main() {
   }
 
   group('ActivationPage', () {
-    testWidgets('renders SmartPOS logo, text field, and Activate button',
-        (tester) async {
+    testWidgets('renders SmartPOS logo, text field, and Activate button', (
+      tester,
+    ) async {
       when(() => mockCubit.state).thenReturn(const ActivationInitial());
 
       await tester.pumpWidget(buildSubject());
 
       // Branding
       expect(find.text('SmartPOS'), findsOneWidget);
-      expect(
-        find.text('Sell Smarter. Stay Compliant.'),
-        findsOneWidget,
-      );
+      expect(find.text('Sell Smarter. Stay Compliant.'), findsOneWidget);
 
       // Input
       expect(find.text('License Key'), findsOneWidget);
@@ -50,8 +48,7 @@ void main() {
       expect(find.text('Activate'), findsOneWidget);
     });
 
-    testWidgets('shows CircularProgressIndicator when loading',
-        (tester) async {
+    testWidgets('shows CircularProgressIndicator when loading', (tester) async {
       when(() => mockCubit.state).thenReturn(const ActivationLoading());
 
       await tester.pumpWidget(buildSubject());
@@ -60,9 +57,8 @@ void main() {
     });
 
     testWidgets('shows error message on error state', (tester) async {
-      when(() => mockCubit.state).thenReturn(
-        const ActivationError('Invalid license key format'),
-      );
+      when(() => mockCubit.state)
+          .thenReturn(const ActivationError('Invalid license key format'));
 
       await tester.pumpWidget(buildSubject());
 
@@ -81,9 +77,7 @@ void main() {
         deviceSerial: 'SUNMI-V2P-ET-89412',
       );
 
-      when(() => mockCubit.state).thenReturn(
-        const ActivationSuccess(config),
-      );
+      when(() => mockCubit.state).thenReturn(const ActivationSuccess(config));
 
       await tester.pumpWidget(buildSubject());
 

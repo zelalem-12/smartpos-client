@@ -6,11 +6,7 @@ void main() {
   group('PinInputWidget', () {
     testWidgets('renders 4 dot containers by default', (tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
-          home: Scaffold(
-            body: PinInputWidget(filledCount: 0),
-          ),
-        ),
+        const MaterialApp(home: Scaffold(body: PinInputWidget(filledCount: 0))),
       );
 
       // Should find 4 Container widgets for the dots
@@ -22,9 +18,7 @@ void main() {
     testWidgets('renders custom pin length', (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
-          home: Scaffold(
-            body: PinInputWidget(filledCount: 0, pinLength: 6),
-          ),
+          home: Scaffold(body: PinInputWidget(filledCount: 0, pinLength: 6)),
         ),
       );
 
@@ -34,11 +28,7 @@ void main() {
 
     testWidgets('renders with 2 filled dots', (tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
-          home: Scaffold(
-            body: PinInputWidget(filledCount: 2),
-          ),
-        ),
+        const MaterialApp(home: Scaffold(body: PinInputWidget(filledCount: 2))),
       );
 
       expect(find.byType(PinInputWidget), findsOneWidget);
@@ -46,11 +36,7 @@ void main() {
 
     testWidgets('renders with all 4 dots filled', (tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
-          home: Scaffold(
-            body: PinInputWidget(filledCount: 4),
-          ),
-        ),
+        const MaterialApp(home: Scaffold(body: PinInputWidget(filledCount: 4))),
       );
 
       expect(find.byType(PinInputWidget), findsOneWidget);
@@ -59,9 +45,7 @@ void main() {
     testWidgets('renders error state', (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
-          home: Scaffold(
-            body: PinInputWidget(filledCount: 4, hasError: true),
-          ),
+          home: Scaffold(body: PinInputWidget(filledCount: 4, hasError: true)),
         ),
       );
 

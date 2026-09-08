@@ -1,8 +1,18 @@
 import '../repositories/store_config_repository.dart';
 import '../repositories/user_repository.dart';
-import '../router/app_router.dart';
+import '../router/app_routes.dart';
 
-/// Determines the correct initial route based on device and user state.
+/// In-memory representation of the currently authenticated user.
+class Session {
+  final String id;
+  final String name;
+  final String role;
+
+  const Session({required this.id, required this.name, required this.role});
+}
+
+/// Determines the correct initial route based on device and user state
+/// and tracks the currently authenticated user in memory.
 ///
 /// Encapsulates the guard logic that was previously embedded in the
 /// GoRouter redirect callback. This makes the logic testable and
@@ -11,20 +21,66 @@ class SessionService {
   final StoreConfigRepository _storeConfigRepo;
   final UserRepository _userRepo;
 
-  const SessionService({
-    required this._storeConfigRepo,
-    required this._userRepo,
-  });
+  Session? _currentSession;
+
+  Session? get currentSession => _currentSession;
+
+  bool get isAuthenticated => _currentSession != null;
+
+  bool get isManager => _currentSession?.role == 'MANAGER';
+
+  String? get currentUserName => _currentSession?.name;
+
+  String? get currentUserRole => _currentSession?.role;
+
+  SessionService(this._storeConfigRepo, this._userRepo);
+
+  /// Set the currently authenticated user.
+  void setUser(String id, String name, String role) {
+    _currentSession = Session(id: id, name: name, role: role);
+  }
+
+  /// Clear the current session (e.g., logout or app termination).
+  void clear() {
+    _currentSession = null;
+  }
+
+  /// The default landing route for the currently authenticated user.
+  ///
+  /// Returns `null` when no user is logged in.
+  String? get homeRoute {
+    if (!isAuthenticated) return null;
+    return isManager ? AppRoutes.manager : AppRoutes.pos;
+  }
+
+  /// Whether the current user is allowed to access [path].
+  bool canAccess(String path) {
+    if (!isAuthenticated) return false;
+
+    // Manager has access to all authenticated routes.
+    if (isManager) return true;
+
+    // Cashier / staff role is restricted to core sales flows.
+    const cashierAllowed = {
+      AppRoutes.pos,
+      AppRoutes.checkout,
+      AppRoutes.receipt,
+    };
+
+    return cashierAllowed.contains(path);
+  }
+
+  /// Check whether [path] is one of the public (non-authenticated) routes.
+  static const _publicPaths = {
+    AppRoutes.activation,
+    AppRoutes.managerSetup,
+    AppRoutes.login,
+  };
 
   /// Evaluate redirect based on current device/user state and the
   /// requested [path].
   ///
   /// Returns a redirect path, or `null` if no redirect is needed.
-  ///
-  /// Guard logic:
-  /// 1. Device not activated -> force /activation
-  /// 2. No manager exists -> force /manager-setup
-  /// 3. Already activated + going to /activation -> skip to login/setup
   Future<String?> evaluateRedirect(String path) async {
     final isActivated = await _storeConfigRepo.isDeviceActivated();
 
@@ -34,18 +90,39 @@ class SessionService {
     }
 
     // Guard 2: No manager exists -> force manager setup
-    if (isActivated && path != AppRoutes.managerSetup) {
-      final hasManager = await _userRepo.hasManager();
-      if (!hasManager && path != AppRoutes.activation) {
-        return AppRoutes.managerSetup;
-      }
+    final hasManager = await _userRepo.hasManager();
+
+    if (isActivated && !hasManager && path != AppRoutes.managerSetup) {
+      return AppRoutes.managerSetup;
     }
 
-    // If already activated and trying to go to activation, skip ahead
+    // Guard 3: Already activated and trying to go to activation, skip ahead
     if (isActivated && path == AppRoutes.activation) {
-      final hasManager = await _userRepo.hasManager();
       if (!hasManager) return AppRoutes.managerSetup;
-      return AppRoutes.pinLogin;
+      return isAuthenticated ? homeRoute : AppRoutes.login;
+    }
+
+    if (isActivated && hasManager && path == AppRoutes.managerSetup) {
+      return isAuthenticated ? homeRoute : AppRoutes.login;
+    }
+
+    // Guard 4: Authenticated user on a public route -> send to home
+    if (isAuthenticated && _publicPaths.contains(path)) {
+      return homeRoute;
+    }
+
+    // Guard 5: Activated + manager exists but not logged in -> force pin login
+    // for all non-public routes
+    if (isActivated &&
+        hasManager &&
+        !isAuthenticated &&
+        !_publicPaths.contains(path)) {
+      return AppRoutes.login;
+    }
+
+    // Guard 6: Authenticated but trying to access a restricted route
+    if (isAuthenticated && !canAccess(path)) {
+      return homeRoute;
     }
 
     return null; // No redirect

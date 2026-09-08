@@ -22,4 +22,16 @@ class AuthLocalSource {
 
   /// Check if any active manager exists.
   Future<bool> hasManager() => _db.hasManager();
+
+  /// Find an active user by their username.
+  ///
+  /// Returns `null` when no matching active user is found.
+  Future<User?> findUserByUsername(String username) =>
+      _db.findUserByUsername(username);
+
+  /// Check whether an active user with [username] already exists.
+  Future<bool> usernameExists(String username) async {
+    final user = await _db.findUserByUsername(username);
+    return user != null;
+  }
 }

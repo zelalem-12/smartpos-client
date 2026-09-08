@@ -28,13 +28,13 @@ class StoreConfigEntity extends Equatable {
 
   @override
   List<Object?> get props => [
-        licenseKey,
-        businessName,
-        tradeName,
-        tin,
-        vatRegNo,
-        sector,
-        address,
-        deviceSerial,
-      ];
+    licenseKey,
+    businessName,
+    tradeName,
+    tin,
+    vatRegNo,
+    sector,
+    address,
+    deviceSerial,
+  ];
 }

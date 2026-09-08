@@ -46,10 +46,7 @@ class NumericKeypad extends StatelessWidget {
           onTap: enabled ? onBackspace : null,
         ),
         _key('0'),
-        _actionKey(
-          icon: Icons.clear,
-          onTap: enabled ? onClear : null,
-        ),
+        _actionKey(icon: Icons.clear, onTap: enabled ? onClear : null),
       ],
     );
   }
@@ -68,10 +65,7 @@ class NumericKeypad extends StatelessWidget {
     );
   }
 
-  Widget _actionKey({
-    required IconData icon,
-    required VoidCallback? onTap,
-  }) {
+  Widget _actionKey({required IconData icon, required VoidCallback? onTap}) {
     return _KeypadButton(
       onTap: onTap,
       child: Icon(icon, color: AppColors.textSecondary, size: 24),

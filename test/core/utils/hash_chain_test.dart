@@ -1,4 +1,5 @@
 import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smartpos_client/core/utils/hash_chain.dart';
 
@@ -99,7 +100,9 @@ void main() {
         const json = '{"id": 1}';
         final hash = HashChain.computeHash('', json);
         expect(
-          HashChain.verifyChain([{'hash': hash, 'json': json}]),
+          HashChain.verifyChain([
+            {'hash': hash, 'json': json},
+          ]),
           -1,
         );
       });

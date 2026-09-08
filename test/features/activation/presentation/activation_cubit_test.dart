@@ -73,8 +73,9 @@ void main() {
     blocTest<ActivationCubit, ActivationState>(
       'emits [Loading, Error] when invalid format submitted',
       build: () {
-        when(() => mockActivateDevice('XXXXX'))
-            .thenThrow(const ValidationFailure('License key must start with "MOR-"'));
+        when(() => mockActivateDevice('XXXXX')).thenThrow(
+          const ValidationFailure('License key must start with "MOR-"'),
+        );
         return ActivationCubit(mockActivateDevice);
       },
       act: (cubit) => cubit.activate('XXXXX'),

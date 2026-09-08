@@ -18,7 +18,10 @@ class VatCalculator {
   /// Extract the net (before-tax) amount from a gross (tax-inclusive) amount.
   ///
   /// Uses the standard 15% VAT rate. Result is rounded to 2 decimal places.
-  static double grossToNet(double grossAmount, {double rate = TaxConstants.vatRate}) {
+  static double grossToNet(
+    double grossAmount, {
+    double rate = TaxConstants.vatRate,
+  }) {
     if (grossAmount <= 0) return 0.0;
     final net = grossAmount / (1 + rate);
     return _round2(net);
@@ -27,7 +30,10 @@ class VatCalculator {
   /// Extract the VAT portion from a gross (tax-inclusive) amount.
   ///
   /// vat = gross - net
-  static double grossToVat(double grossAmount, {double rate = TaxConstants.vatRate}) {
+  static double grossToVat(
+    double grossAmount, {
+    double rate = TaxConstants.vatRate,
+  }) {
     if (grossAmount <= 0) return 0.0;
     final net = grossToNet(grossAmount, rate: rate);
     return _round2(grossAmount - net);
@@ -36,7 +42,10 @@ class VatCalculator {
   /// Calculate the gross amount from a net amount (add VAT on top).
   ///
   /// gross = net * (1 + rate)
-  static double netToGross(double netAmount, {double rate = TaxConstants.vatRate}) {
+  static double netToGross(
+    double netAmount, {
+    double rate = TaxConstants.vatRate,
+  }) {
     if (netAmount <= 0) return 0.0;
     return _round2(netAmount * (1 + rate));
   }

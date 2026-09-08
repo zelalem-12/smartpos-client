@@ -31,9 +31,7 @@ class MockInterceptor extends Interceptor {
         Response(
           requestOptions: options,
           statusCode: 401,
-          data: {
-            'message': 'Invalid or unregistered license key',
-          },
+          data: {'message': 'Invalid or unregistered license key'},
         ),
       );
     }

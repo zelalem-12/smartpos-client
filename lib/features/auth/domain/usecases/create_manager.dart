@@ -1,11 +1,10 @@
-import '../../../../core/constants/app_constants.dart';
 import '../../../../core/error/failures.dart';
 import '../entities/user_entity.dart';
 import '../repositories/auth_repository.dart';
 
 /// Creates the initial manager account during first-time setup.
 ///
-/// Validates the display name and 4-digit PIN, then delegates to
+/// Validates the username, full name, and password, then delegates to
 /// the repository for hashing and persistence.
 class CreateManager {
   final AuthRepository _repository;
@@ -16,32 +15,50 @@ class CreateManager {
   ///
   /// Returns the created [UserEntity] on success.
   /// Throws [ValidationFailure] for invalid input.
-  /// Throws [ConflictFailure] if a manager already exists.
+  /// Throws [ConflictFailure] if a manager or username already exists.
   /// Throws [CacheFailure] for database errors.
   Future<UserEntity> call({
-    required String name,
-    required String pin,
+    required String username,
+    required String fullName,
+    required String password,
   }) async {
-    final trimmedName = name.trim();
+    final trimmedUsername = username.trim();
+    final trimmedFullName = fullName.trim();
 
-    if (trimmedName.isEmpty) {
-      throw const ValidationFailure('Manager name is required');
+    if (trimmedUsername.isEmpty) {
+      throw const ValidationFailure('Username is required');
     }
 
-    if (trimmedName.length < 2) {
-      throw const ValidationFailure('Manager name must be at least 2 characters');
+    if (trimmedUsername.length < 3) {
+      throw const ValidationFailure('Username must be at least 3 characters');
     }
 
-    if (pin.length != AppConstants.pinLength) {
-      throw ValidationFailure(
-        'PIN must be exactly ${AppConstants.pinLength} digits',
+    if (!RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(trimmedUsername)) {
+      throw const ValidationFailure(
+        'Username may only contain letters, numbers, and underscores',
       );
     }
 
-    if (!RegExp(r'^\d{4}$').hasMatch(pin)) {
-      throw const ValidationFailure('PIN must contain only digits');
+    if (trimmedFullName.isEmpty) {
+      throw const ValidationFailure('Full name is required');
     }
 
-    return _repository.createManager(name: trimmedName, pin: pin);
+    if (trimmedFullName.length < 2) {
+      throw const ValidationFailure('Full name must be at least 2 characters');
+    }
+
+    if (password.isEmpty) {
+      throw const ValidationFailure('Password is required');
+    }
+
+    if (password.length < 4) {
+      throw const ValidationFailure('Password must be at least 4 characters');
+    }
+
+    return _repository.createManager(
+      username: trimmedUsername,
+      fullName: trimmedFullName,
+      password: password,
+    );
   }
 }

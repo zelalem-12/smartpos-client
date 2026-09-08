@@ -13,9 +13,10 @@ void main() {
 
   final manager = UserEntity(
     id: 'abc-123',
-    name: 'Abebe Bikila',
+    username: 'abebe01',
+    fullName: 'Abebe Bikila',
     role: 'MANAGER',
-    pinHash: 'hashed-pin',
+    passwordHash: 'hashed-password',
     isActive: true,
     createdAt: DateTime(2026, 9, 8),
   );
@@ -27,87 +28,130 @@ void main() {
 
   group('CreateManager', () {
     test('returns UserEntity on valid input', () async {
-      when(() => mockRepo.createManager(name: 'Abebe Bikila', pin: '1234'))
-          .thenAnswer((_) async => manager);
+      when(
+        () => mockRepo.createManager(
+          username: 'abebe01',
+          fullName: 'Abebe Bikila',
+          password: '1234',
+        ),
+      ).thenAnswer((_) async => manager);
 
-      final result = await useCase(name: 'Abebe Bikila', pin: '1234');
+      final result = await useCase(
+        username: 'abebe01',
+        fullName: 'Abebe Bikila',
+        password: '1234',
+      );
 
       expect(result, manager);
-      verify(() => mockRepo.createManager(name: 'Abebe Bikila', pin: '1234'))
-          .called(1);
+      verify(
+        () => mockRepo.createManager(
+          username: 'abebe01',
+          fullName: 'Abebe Bikila',
+          password: '1234',
+        ),
+      ).called(1);
     });
 
-    test('trims name', () async {
-      when(() => mockRepo.createManager(name: 'Abebe Bikila', pin: '1234'))
-          .thenAnswer((_) async => manager);
+    test('trims input', () async {
+      when(
+        () => mockRepo.createManager(
+          username: any(named: 'username'),
+          fullName: any(named: 'fullName'),
+          password: any(named: 'password'),
+        ),
+      ).thenAnswer((_) async => manager);
 
-      await useCase(name: '  Abebe Bikila  ', pin: '1234');
+      await useCase(
+        username: '  abebe01  ',
+        fullName: '  Abebe Bikila  ',
+        password: '1234',
+      );
 
-      verify(() => mockRepo.createManager(name: 'Abebe Bikila', pin: '1234'))
-          .called(1);
+      verify(
+        () => mockRepo.createManager(
+          username: 'abebe01',
+          fullName: 'Abebe Bikila',
+          password: '1234',
+        ),
+      ).called(1);
     });
 
-    test('throws ValidationFailure on empty name', () async {
+    test('throws ValidationFailure on short username', () async {
       expect(
-        () => useCase(name: '', pin: '1234'),
-        throwsA(isA<ValidationFailure>().having(
-          (f) => f.message,
-          'message',
-          'Manager name is required',
-        )),
+        () =>
+            useCase(username: 'ab', fullName: 'Abebe Bikila', password: '1234'),
+        throwsA(
+          isA<ValidationFailure>().having(
+            (f) => f.message,
+            'message',
+            contains('at least 3 characters'),
+          ),
+        ),
       );
     });
 
-    test('throws ValidationFailure on short name', () async {
+    test('throws ValidationFailure on invalid username characters', () async {
       expect(
-        () => useCase(name: 'A', pin: '1234'),
-        throwsA(isA<ValidationFailure>().having(
-          (f) => f.message,
-          'message',
-          contains('at least 2 characters'),
-        )),
+        () => useCase(
+          username: 'abebe-01',
+          fullName: 'Abebe Bikila',
+          password: '1234',
+        ),
+        throwsA(
+          isA<ValidationFailure>().having(
+            (f) => f.message,
+            'message',
+            contains('letters, numbers, and underscores'),
+          ),
+        ),
       );
     });
 
-    test('throws ValidationFailure on short PIN', () async {
+    test('throws ValidationFailure on empty full name', () async {
       expect(
-        () => useCase(name: 'Abebe', pin: '123'),
-        throwsA(isA<ValidationFailure>().having(
-          (f) => f.message,
-          'message',
-          contains('4 digits'),
-        )),
+        () => useCase(username: 'abebe01', fullName: '', password: '1234'),
+        throwsA(
+          isA<ValidationFailure>().having(
+            (f) => f.message,
+            'message',
+            'Full name is required',
+          ),
+        ),
       );
     });
 
-    test('throws ValidationFailure on long PIN', () async {
+    test('throws ValidationFailure on short password', () async {
       expect(
-        () => useCase(name: 'Abebe', pin: '12345'),
-        throwsA(isA<ValidationFailure>().having(
-          (f) => f.message,
-          'message',
-          contains('4 digits'),
-        )),
-      );
-    });
-
-    test('throws ValidationFailure on non-numeric PIN', () async {
-      expect(
-        () => useCase(name: 'Abebe', pin: '12a4'),
-        throwsA(isA<ValidationFailure>().having(
-          (f) => f.message,
-          'message',
-          'PIN must contain only digits',
-        )),
+        () => useCase(
+          username: 'abebe01',
+          fullName: 'Abebe Bikila',
+          password: '123',
+        ),
+        throwsA(
+          isA<ValidationFailure>().having(
+            (f) => f.message,
+            'message',
+            contains('at least 4 characters'),
+          ),
+        ),
       );
     });
 
     test('propagates ConflictFailure from repository', () async {
-      when(() => mockRepo.createManager(name: any(named: 'name'), pin: any(named: 'pin')))
-          .thenThrow(const ConflictFailure('A manager already exists'));
+      when(
+        () => mockRepo.createManager(
+          username: any(named: 'username'),
+          fullName: any(named: 'fullName'),
+          password: any(named: 'password'),
+        ),
+      ).thenThrow(const ConflictFailure('A manager already exists'));
 
       expect(
-        () => useCase(name: 'Abebe', pin: '1234'),
+        () => useCase(
+          username: 'abebe01',
+          fullName: 'Abebe Bikila',
+          password: '1234',
+        ),
         throwsA(isA<ConflictFailure>()),
       );
     });

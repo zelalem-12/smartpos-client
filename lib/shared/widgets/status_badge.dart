@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../core/theme/app_colors.dart';
 
 /// A small colored badge for displaying status (SYNCED, PENDING, FAILED, etc).
@@ -6,11 +7,7 @@ class StatusBadge extends StatelessWidget {
   final String label;
   final StatusType type;
 
-  const StatusBadge({
-    super.key,
-    required this.label,
-    required this.type,
-  });
+  const StatusBadge({super.key, required this.label, required this.type});
 
   @override
   Widget build(BuildContext context) {

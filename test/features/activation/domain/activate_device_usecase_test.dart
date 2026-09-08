@@ -51,53 +51,61 @@ void main() {
     test('throws ValidationFailure on empty key', () async {
       expect(
         () => useCase(''),
-        throwsA(isA<ValidationFailure>().having(
-          (f) => f.message,
-          'message',
-          'License key is required',
-        )),
+        throwsA(
+          isA<ValidationFailure>().having(
+            (f) => f.message,
+            'message',
+            'License key is required',
+          ),
+        ),
       );
 
       verifyNever(() => mockRepo.activateDevice(any()));
     });
 
     test('throws ValidationFailure on whitespace-only key', () async {
-      expect(
-        () => useCase('   '),
-        throwsA(isA<ValidationFailure>()),
-      );
+      expect(() => useCase('   '), throwsA(isA<ValidationFailure>()));
     });
 
-    test('throws ValidationFailure when key does not start with MOR-', () async {
-      expect(
-        () => useCase('XYZ-12345678'),
-        throwsA(isA<ValidationFailure>().having(
-          (f) => f.message,
-          'message',
-          contains('MOR-'),
-        )),
-      );
-    });
+    test(
+      'throws ValidationFailure when key does not start with MOR-',
+      () async {
+        expect(
+          () => useCase('XYZ-12345678'),
+          throwsA(
+            isA<ValidationFailure>().having(
+              (f) => f.message,
+              'message',
+              contains('MOR-'),
+            ),
+          ),
+        );
+      },
+    );
 
     test('throws ValidationFailure when key is too short', () async {
       expect(
         () => useCase('MOR-123'),
-        throwsA(isA<ValidationFailure>().having(
-          (f) => f.message,
-          'message',
-          contains('12 characters'),
-        )),
+        throwsA(
+          isA<ValidationFailure>().having(
+            (f) => f.message,
+            'message',
+            contains('12 characters'),
+          ),
+        ),
       );
     });
 
     test('throws ValidationFailure when key is too long', () async {
       expect(
         () => useCase('MOR-123456789'),
-        throwsA(isA<ValidationFailure>().having(
-          (f) => f.message,
-          'message',
-          contains('12 characters'),
-        )),
+        throwsA(
+          isA<ValidationFailure>().having(
+            (f) => f.message,
+            'message',
+            contains('12 characters'),
+          ),
+        ),
       );
     });
 
@@ -105,10 +113,7 @@ void main() {
       when(() => mockRepo.activateDevice('MOR-00000000'))
           .thenThrow(const ServerFailure('Server unavailable'));
 
-      expect(
-        () => useCase('MOR-00000000'),
-        throwsA(isA<ServerFailure>()),
-      );
+      expect(() => useCase('MOR-00000000'), throwsA(isA<ServerFailure>()));
     });
   });
 }

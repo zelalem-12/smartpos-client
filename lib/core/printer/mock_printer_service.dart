@@ -1,4 +1,5 @@
 import 'dart:developer' as developer;
+
 import 'printer_service.dart';
 
 /// Mock printer for emulator and desktop testing.

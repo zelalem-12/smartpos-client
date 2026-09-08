@@ -3,7 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_constants.dart';
-import '../../../../core/router/app_router.dart';
+import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../cubit/activation_cubit.dart';
@@ -179,9 +179,9 @@ class _ActivationPageState extends State<ActivationPage> {
               onPressed: !_hasText || isLoading
                   ? null
                   : () {
-                      context
-                          .read<ActivationCubit>()
-                          .activate(_keyController.text);
+                      context.read<ActivationCubit>().activate(
+                        _keyController.text,
+                      );
                     },
             ),
           ],

@@ -6,7 +6,7 @@ import 'manager_setup_state.dart';
 
 /// Manages the manager setup screen state.
 ///
-/// Validates the form (matching PINs) and delegates to [CreateManager]
+/// Validates the form (matching passwords) and delegates to [CreateManager]
 /// for persistence. Emits [ManagerSetupLoading], [ManagerSetupSuccess],
 /// or [ManagerSetupError].
 class ManagerSetupCubit extends Cubit<ManagerSetupState> {
@@ -16,22 +16,27 @@ class ManagerSetupCubit extends Cubit<ManagerSetupState> {
 
   /// Submit the manager setup form.
   ///
-  /// [pin] and [confirmPin] must match. The use case validates
-  /// name length, PIN format, and uniqueness.
+  /// [password] and [confirmPassword] must match. The use case validates
+  /// username, full name, password, and uniqueness.
   Future<void> submit({
-    required String name,
-    required String pin,
-    required String confirmPin,
+    required String username,
+    required String fullName,
+    required String password,
+    required String confirmPassword,
   }) async {
     emit(const ManagerSetupLoading());
 
-    if (pin != confirmPin) {
-      emit(const ManagerSetupError('PINs do not match'));
+    if (password != confirmPassword) {
+      emit(const ManagerSetupError('Passwords do not match'));
       return;
     }
 
     try {
-      final manager = await _createManager(name: name, pin: pin);
+      final manager = await _createManager(
+        username: username,
+        fullName: fullName,
+        password: password,
+      );
       emit(ManagerSetupSuccess(manager));
     } on Failure catch (e) {
       emit(ManagerSetupError(e.message));

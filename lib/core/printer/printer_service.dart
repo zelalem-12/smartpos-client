@@ -34,14 +34,23 @@ class PrintLine {
     this.fontSize = PrintFontSize.normal,
   });
 
-  const PrintLine.center(this.text, {this.bold = false, this.fontSize = PrintFontSize.normal})
-      : alignment = PrintAlignment.center;
+  const PrintLine.center(
+    this.text, {
+    this.bold = false,
+    this.fontSize = PrintFontSize.normal,
+  }) : alignment = PrintAlignment.center;
 
-  const PrintLine.right(this.text, {this.bold = false, this.fontSize = PrintFontSize.normal})
-      : alignment = PrintAlignment.right;
+  const PrintLine.right(
+    this.text, {
+    this.bold = false,
+    this.fontSize = PrintFontSize.normal,
+  }) : alignment = PrintAlignment.right;
 
-  const PrintLine.bold(this.text, {this.alignment = PrintAlignment.left, this.fontSize = PrintFontSize.normal})
-      : bold = true;
+  const PrintLine.bold(
+    this.text, {
+    this.alignment = PrintAlignment.left,
+    this.fontSize = PrintFontSize.normal,
+  }) : bold = true;
 }
 
 enum PrintAlignment { left, center, right }

@@ -9,8 +9,7 @@ import 'package:smartpos_client/features/activation/domain/entities/store_config
 class MockActivationRemoteSource extends Mock
     implements ActivationRemoteSource {}
 
-class MockActivationLocalSource extends Mock
-    implements ActivationLocalSource {}
+class MockActivationLocalSource extends Mock implements ActivationLocalSource {}
 
 void main() {
   late ActivationRepositoryImpl repository;
@@ -37,24 +36,25 @@ void main() {
   });
 
   setUpAll(() {
-    registerFallbackValue(const StoreConfigEntity(
-      licenseKey: '',
-      businessName: '',
-      tradeName: '',
-      tin: '',
-      vatRegNo: '',
-      sector: '',
-      address: '',
-      deviceSerial: '',
-    ));
+    registerFallbackValue(
+      const StoreConfigEntity(
+        licenseKey: '',
+        businessName: '',
+        tradeName: '',
+        tin: '',
+        vatRegNo: '',
+        sector: '',
+        address: '',
+        deviceSerial: '',
+      ),
+    );
   });
 
   group('ActivationRepositoryImpl', () {
     test('calls remote source then saves locally and returns entity', () async {
       when(() => mockRemote.activateDevice('MOR-4A9K2L8Q'))
           .thenAnswer((_) async => responseModel);
-      when(() => mockLocal.saveStoreConfig(any()))
-          .thenAnswer((_) async {});
+      when(() => mockLocal.saveStoreConfig(any())).thenAnswer((_) async {});
 
       final result = await repository.activateDevice('MOR-4A9K2L8Q');
 

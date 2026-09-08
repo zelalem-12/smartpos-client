@@ -21,6 +21,6 @@ abstract class UserRepository {
   /// Check if any active manager exists.
   Future<bool> hasManager();
 
-  /// Find a user by PIN hash and active status.
-  Future<User?> findUserByPinHash(String pinHash);
+  /// Find an active user by username.
+  Future<User?> findUserByUsername(String username);
 }
