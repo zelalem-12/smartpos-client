@@ -19,6 +19,9 @@ import '../../features/pos/presentation/bloc/pos_bloc.dart';
 import '../../features/pos/presentation/bloc/pos_event.dart';
 import '../../features/pos/presentation/pages/manager_dashboard_page.dart';
 import '../../features/pos/presentation/pages/pos_page.dart';
+import '../../features/settings/presentation/cubit/cashier_management_cubit.dart';
+import '../../features/settings/presentation/pages/settings_page.dart';
+import '../../shared/navigation/auth_route_back_handler.dart';
 import '../di/injection.dart';
 import '../services/session_service.dart';
 import 'app_routes.dart';
@@ -40,20 +43,22 @@ class _PlaceholderPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => _safePop(context),
-          tooltip: 'Back',
+    return AuthRouteBackHandler(
+      child: Scaffold(
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => _safePop(context),
+            tooltip: 'Back',
+          ),
+          title: Text(title),
         ),
-        title: Text(title),
-      ),
-      body: Center(
-        child: Text(
-          '$title\n(Coming soon)',
-          textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.headlineSmall,
+        body: Center(
+          child: Text(
+            '$title\n(Coming soon)',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.headlineSmall,
+          ),
         ),
       ),
     );
@@ -153,7 +158,10 @@ GoRouter createRouter() {
       ),
       GoRoute(
         path: AppRoutes.settings,
-        builder: (context, state) => const _PlaceholderPage(title: 'Settings'),
+        builder: (context, state) => BlocProvider(
+          create: (_) => sl<CashierManagementCubit>()..loadUsers(),
+          child: const SettingsPage(),
+        ),
       ),
     ],
   );

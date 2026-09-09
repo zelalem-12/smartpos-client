@@ -15,9 +15,13 @@ import 'package:smartpos_client/features/pos/domain/entities/cart_entity.dart';
 import 'package:smartpos_client/features/pos/presentation/bloc/cart_bloc.dart';
 import 'package:smartpos_client/features/pos/presentation/bloc/cart_event.dart';
 import 'package:smartpos_client/features/pos/presentation/bloc/cart_state.dart';
+import 'package:smartpos_client/features/invoice/presentation/cubit/checkout_cubit.dart';
+import 'package:smartpos_client/features/invoice/presentation/cubit/checkout_state.dart';
 import 'package:smartpos_client/features/pos/presentation/bloc/pos_bloc.dart';
 import 'package:smartpos_client/features/pos/presentation/bloc/pos_event.dart';
 import 'package:smartpos_client/features/pos/presentation/bloc/pos_state.dart';
+import 'package:smartpos_client/features/settings/presentation/cubit/cashier_management_cubit.dart';
+import 'package:smartpos_client/features/settings/presentation/cubit/cashier_management_state.dart';
 
 class MockStoreConfigRepository extends Mock implements StoreConfigRepository {}
 
@@ -46,6 +50,21 @@ class MockCartBloc extends MockBloc<CartEvent, CartState> implements CartBloc {
   }
 }
 
+class MockCheckoutCubit extends MockCubit<CheckoutState>
+    implements CheckoutCubit {
+  MockCheckoutCubit() {
+    when(() => state).thenReturn(CheckoutLoaded(cart: const CartEntity()));
+  }
+}
+
+class MockCashierManagementCubit extends MockCubit<CashierManagementState>
+    implements CashierManagementCubit {
+  MockCashierManagementCubit() {
+    when(() => state).thenReturn(const CashierManagementLoaded([]));
+    when(() => loadUsers()).thenAnswer((_) async {});
+  }
+}
+
 void _safeUnregister<T extends Object>() {
   if (sl.isRegistered<T>()) {
     sl.unregister<T>();
@@ -59,6 +78,8 @@ void _resetAndRegisterMocks() {
   _safeUnregister<CatalogBloc>();
   _safeUnregister<PosBloc>();
   _safeUnregister<CartBloc>();
+  _safeUnregister<CashierManagementCubit>();
+  _safeUnregister<CheckoutCubit>();
 
   final storeRepo = MockStoreConfigRepository();
   final userRepo = MockUserRepository();
@@ -75,6 +96,10 @@ void _resetAndRegisterMocks() {
   sl.registerFactory<CatalogBloc>(() => MockCatalogBloc());
   sl.registerFactory<PosBloc>(() => MockPosBloc());
   sl.registerFactory<CartBloc>(() => MockCartBloc());
+  sl.registerFactory<CashierManagementCubit>(
+    () => MockCashierManagementCubit(),
+  );
+  sl.registerFactory<CheckoutCubit>(() => MockCheckoutCubit());
 }
 
 void _unregisterMocks() {
@@ -84,6 +109,8 @@ void _unregisterMocks() {
   _safeUnregister<CatalogBloc>();
   _safeUnregister<PosBloc>();
   _safeUnregister<CartBloc>();
+  _safeUnregister<CashierManagementCubit>();
+  _safeUnregister<CheckoutCubit>();
 }
 
 void main() {
@@ -164,6 +191,83 @@ void main() {
       expect(router.state.matchedLocation, AppRoutes.settings);
       expect(find.text('Settings'), findsWidgets);
       expect(find.byIcon(Icons.arrow_back), findsOneWidget);
+    });
+
+    testWidgets('cashier is redirected away from settings and catalog', (
+      tester,
+    ) async {
+      sl<SessionService>().setUser('c1', 'Chala', 'CASHIER');
+
+      final router = createRouter();
+
+      await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+      await tester.pumpAndSettle();
+
+      router.go(AppRoutes.settings);
+      await tester.pumpAndSettle();
+      expect(router.state.matchedLocation, AppRoutes.pos);
+
+      router.go(AppRoutes.catalog);
+      await tester.pumpAndSettle();
+      expect(router.state.matchedLocation, AppRoutes.pos);
+    });
+
+    testWidgets('manager can navigate to settings route', (tester) async {
+      sl<SessionService>().setUser('m1', 'Abebe', 'MANAGER');
+
+      final router = createRouter();
+
+      await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+      await tester.pumpAndSettle();
+
+      router.go(AppRoutes.settings);
+      await tester.pumpAndSettle();
+
+      expect(router.state.matchedLocation, AppRoutes.settings);
+    });
+
+    testWidgets('system back from top-level POS returns manager home', (
+      tester,
+    ) async {
+      sl<SessionService>().setUser('m1', 'Abebe', 'MANAGER');
+
+      final router = createRouter();
+
+      await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+      await tester.pumpAndSettle();
+
+      router.go(AppRoutes.pos);
+      await tester.pumpAndSettle();
+      expect(router.state.matchedLocation, AppRoutes.pos);
+
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+
+      expect(router.state.matchedLocation, AppRoutes.manager);
+    });
+
+    testWidgets('system back from pushed checkout returns to POS', (
+      tester,
+    ) async {
+      sl<SessionService>().setUser('c1', 'Chala', 'CASHIER');
+
+      final router = createRouter();
+
+      await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+      await tester.pumpAndSettle();
+
+      router.go(AppRoutes.pos);
+      await tester.pumpAndSettle();
+
+      // Simulate the cart pushing checkout via a pushed route.
+      router.push(AppRoutes.checkout);
+      await tester.pumpAndSettle();
+      expect(router.state.matchedLocation, AppRoutes.checkout);
+
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+
+      expect(router.state.matchedLocation, AppRoutes.pos);
     });
   });
 }

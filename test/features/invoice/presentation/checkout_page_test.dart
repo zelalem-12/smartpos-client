@@ -267,5 +267,25 @@ void main() {
 
       expect(router.state.matchedLocation, AppRoutes.pos);
     });
+
+    testWidgets('buyer TIN field retains focus across multiple digits', (
+      tester,
+    ) async {
+      await pumpSubject(tester);
+      await tester.pumpAndSettle();
+
+      final tinField = find.byKey(const ValueKey('buyerTinField'));
+      await tester.tap(tinField);
+      await tester.pump();
+
+      for (final value in ['1', '12', '123', '1234', '1234567890']) {
+        await tester.enterText(tinField, value);
+        await tester.pump();
+        expect(tester.testTextInput.isVisible, isTrue);
+        expect(FocusManager.instance.primaryFocus?.hasFocus, isTrue);
+      }
+
+      expect(find.text('1234567890'), findsOneWidget);
+    });
   });
 }

@@ -36,8 +36,8 @@ void main() {
 
       expect(find.text(AppConstants.appName), findsOneWidget);
       expect(find.text(AppConstants.appTagline), findsOneWidget);
-      expect(find.text('Username'), findsOneWidget);
-      expect(find.text('Password'), findsOneWidget);
+      expect(find.text('username'), findsOneWidget);
+      expect(find.text('password'), findsOneWidget);
       expect(find.text('Log In'), findsOneWidget);
     });
 
@@ -70,6 +70,27 @@ void main() {
       await tester.pumpWidget(buildSubject());
 
       expect(find.text('Invalid username or password'), findsOneWidget);
+    });
+
+    testWidgets('username and password fields keep focus across characters', (
+      tester,
+    ) async {
+      when(() => mockCubit.state).thenReturn(const LoginInitial());
+
+      await tester.pumpWidget(buildSubject());
+
+      final usernameField = find.byKey(const ValueKey('usernameField'));
+      await tester.tap(usernameField);
+      await tester.pump();
+
+      for (final value in ['m', 'ma', 'man', 'mana', 'manager']) {
+        await tester.enterText(usernameField, value);
+        await tester.pump();
+        expect(tester.testTextInput.isVisible, isTrue);
+        expect(FocusManager.instance.primaryFocus?.hasFocus, isTrue);
+      }
+
+      expect(find.text('manager'), findsOneWidget);
     });
   });
 }

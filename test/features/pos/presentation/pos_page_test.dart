@@ -27,6 +27,7 @@ import 'package:smartpos_client/features/pos/presentation/widgets/pos_product_ca
 import 'package:smartpos_client/core/di/injection.dart';
 import 'package:smartpos_client/core/router/app_routes.dart';
 import 'package:smartpos_client/core/services/session_service.dart';
+import 'package:smartpos_client/core/theme/app_theme.dart';
 
 class MockPosBloc extends MockBloc<PosEvent, PosState> implements PosBloc {}
 
@@ -140,10 +141,14 @@ void main() {
           path: AppRoutes.checkout,
           builder: (context, state) => const Scaffold(body: Text('Checkout')),
         ),
+        GoRoute(
+          path: AppRoutes.login,
+          builder: (context, state) => const Scaffold(body: Text('Login')),
+        ),
       ],
     );
 
-    return MaterialApp.router(routerConfig: router);
+    return MaterialApp.router(theme: AppTheme.light, routerConfig: router);
   }
 
   group('PosPage', () {
@@ -184,8 +189,26 @@ void main() {
       await tester.pumpWidget(buildSubject(screenSize: const Size(500, 800)));
       await tester.pump();
 
+      expect(tester.takeException(), isNull);
       expect(find.text('0 items'), findsOneWidget);
       expect(find.text('View Cart'), findsOneWidget);
+    });
+
+    testWidgets('logout action returns cashier to login', (tester) async {
+      when(() => mockPosBloc.state).thenReturn(
+        PosLoaded(
+          categories: [category],
+          products: [product],
+          filteredProducts: [product],
+        ),
+      );
+
+      await tester.pumpWidget(buildSubject(screenSize: const Size(500, 800)));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Log out'));
+      await tester.pumpAndSettle();
+
+      expect(router.state.matchedLocation, AppRoutes.login);
     });
 
     testWidgets('shows split cart panel on wide screens', (tester) async {
@@ -223,6 +246,33 @@ void main() {
       await tester.pump();
 
       verify(() => mockPosBloc.add(const SearchPosProducts('tea'))).called(1);
+    });
+
+    testWidgets('search field retains focus across multiple characters', (
+      tester,
+    ) async {
+      when(() => mockPosBloc.state).thenReturn(
+        PosLoaded(
+          categories: [category],
+          products: [product],
+          filteredProducts: [product],
+        ),
+      );
+
+      await tester.pumpWidget(buildSubject());
+
+      final searchField = find.byKey(const ValueKey('posSearchField'));
+      await tester.tap(searchField);
+      await tester.pump();
+
+      for (final value in ['c', 'co', 'cof', 'coff', 'coffee']) {
+        await tester.enterText(searchField, value);
+        await tester.pump();
+        expect(tester.testTextInput.isVisible, isTrue);
+        expect(FocusManager.instance.primaryFocus?.hasFocus, isTrue);
+      }
+
+      expect(find.text('coffee'), findsOneWidget);
     });
 
     testWidgets('wide CHARGE button pushes checkout', (tester) async {

@@ -89,6 +89,12 @@ class AppDatabase extends _$AppDatabase {
     return (select(users)..where((u) => u.isActive.equals(true))).get();
   }
 
+  Future<List<User>> getAllUsers() {
+    return (select(
+      users,
+    )..orderBy([(u) => OrderingTerm(expression: u.fullName)])).get();
+  }
+
   /// Get a user by ID.
   Future<User?> getUserById(String id) {
     return (select(users)..where((u) => u.id.equals(id))).getSingleOrNull();

@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/extensions/context_extensions.dart';
+import '../../../../shared/navigation/auth_route_back_handler.dart';
 import '../../domain/entities/product_entity.dart';
 import '../bloc/catalog_bloc.dart';
 import '../bloc/catalog_event.dart';
@@ -72,51 +73,53 @@ class _CatalogManagementPageState extends State<CatalogManagementPage> {
     final theme = Theme.of(context);
     final bloc = context.read<CatalogBloc>();
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
+    return AuthRouteBackHandler(
+      child: Scaffold(
         backgroundColor: AppColors.background,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.textSecondary),
-          onPressed: () => context.safePop(),
-          tooltip: 'Back',
-        ),
-        title: Text(
-          'Catalog Management',
-          style: theme.textTheme.titleLarge?.copyWith(
-            color: AppColors.primary,
-            fontWeight: FontWeight.w700,
+        appBar: AppBar(
+          backgroundColor: AppColors.background,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: AppColors.textSecondary),
+            onPressed: () => context.safePop(),
+            tooltip: 'Back',
+          ),
+          title: Text(
+            'Catalog Management',
+            style: theme.textTheme.titleLarge?.copyWith(
+              color: AppColors.primary,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ),
-      ),
-      body: BlocConsumer<CatalogBloc, CatalogState>(
-        listener: (context, state) {
-          if (state is CatalogError) {
-            ScaffoldMessenger.of(context)
-                .showSnackBar(SnackBar(content: Text(state.message)));
-          }
-        },
-        builder: (context, state) {
-          if (state is CatalogInitial || state is CatalogLoading) {
-            return const Center(child: CircularProgressIndicator());
-          }
+        body: BlocConsumer<CatalogBloc, CatalogState>(
+          listener: (context, state) {
+            if (state is CatalogError) {
+              ScaffoldMessenger.of(context)
+                  .showSnackBar(SnackBar(content: Text(state.message)));
+            }
+          },
+          builder: (context, state) {
+            if (state is CatalogInitial || state is CatalogLoading) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-          if (state is CatalogError) {
-            return Center(child: Text(state.message));
-          }
+            if (state is CatalogError) {
+              return Center(child: Text(state.message));
+            }
 
-          if (state is CatalogLoaded) {
-            return _buildBody(context, state, bloc);
-          }
+            if (state is CatalogLoaded) {
+              return _buildBody(context, state, bloc);
+            }
 
-          return const SizedBox.shrink();
-        },
-      ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: AppColors.accent,
-        onPressed: () => _showProductDialog(),
-        child: const Icon(Icons.add, color: Colors.white),
+            return const SizedBox.shrink();
+          },
+        ),
+        floatingActionButton: FloatingActionButton(
+          backgroundColor: AppColors.accent,
+          onPressed: () => _showProductDialog(),
+          child: const Icon(Icons.add, color: Colors.white),
+        ),
       ),
     );
   }

@@ -9,6 +9,8 @@ abstract class UserRepository {
   /// Get all active users.
   Future<List<User>> getActiveUsers();
 
+  Future<List<User>> getAllUsers();
+
   /// Get a user by ID.
   Future<User?> getUserById(String id);
 

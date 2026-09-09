@@ -2,13 +2,50 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:smartpos_client/core/di/injection.dart';
+import 'package:smartpos_client/core/router/app_routes.dart';
+import 'package:smartpos_client/core/services/session_service.dart';
 import 'package:smartpos_client/features/catalog/domain/entities/category_entity.dart';
 import 'package:smartpos_client/features/catalog/domain/entities/product_entity.dart';
 import 'package:smartpos_client/features/catalog/presentation/bloc/catalog_bloc.dart';
 import 'package:smartpos_client/features/catalog/presentation/bloc/catalog_event.dart';
 import 'package:smartpos_client/features/catalog/presentation/bloc/catalog_state.dart';
 import 'package:smartpos_client/features/catalog/presentation/pages/catalog_management_page.dart';
+
+class _FakeSessionService implements SessionService {
+  @override
+  Session? get currentSession =>
+      const Session(id: 'u1', name: 'Abebe', role: 'MANAGER');
+
+  @override
+  bool get isAuthenticated => true;
+
+  @override
+  bool get isManager => true;
+
+  @override
+  String? get currentUserName => currentSession?.name;
+
+  @override
+  String? get currentUserRole => currentSession?.role;
+
+  @override
+  String? get homeRoute => AppRoutes.manager;
+
+  @override
+  void setUser(String id, String name, String role) {}
+
+  @override
+  void clear() {}
+
+  @override
+  bool canAccess(String path) => true;
+
+  @override
+  Future<String?> evaluateRedirect(String path) async => null;
+}
 
 class MockCatalogBloc extends MockBloc<CatalogEvent, CatalogState>
     implements CatalogBloc {}
@@ -19,15 +56,38 @@ void main() {
 
   setUp(() {
     mockBloc = MockCatalogBloc();
+
+    if (sl.isRegistered<SessionService>()) {
+      sl.unregister<SessionService>();
+    }
+    sl.registerLazySingleton<SessionService>(() => _FakeSessionService());
+  });
+
+  tearDown(() {
+    if (sl.isRegistered<SessionService>()) {
+      sl.unregister<SessionService>();
+    }
   });
 
   Widget buildSubject() {
-    return MaterialApp(
-      home: BlocProvider<CatalogBloc>.value(
-        value: mockBloc,
-        child: const CatalogManagementPage(),
-      ),
+    final router = GoRouter(
+      initialLocation: AppRoutes.catalog,
+      routes: [
+        GoRoute(
+          path: AppRoutes.catalog,
+          builder: (context, state) => BlocProvider<CatalogBloc>.value(
+            value: mockBloc,
+            child: const CatalogManagementPage(),
+          ),
+        ),
+        GoRoute(
+          path: AppRoutes.manager,
+          builder: (context, state) => const Scaffold(body: Text('Dashboard')),
+        ),
+      ],
     );
+
+    return MaterialApp.router(routerConfig: router);
   }
 
   group('CatalogManagementPage', () {

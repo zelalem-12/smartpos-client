@@ -8,6 +8,7 @@ import '../../../../core/services/session_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/responsive_layout.dart';
 import '../../../../shared/extensions/context_extensions.dart';
+import '../../../../shared/navigation/auth_route_back_handler.dart';
 import '../../../catalog/domain/entities/category_entity.dart';
 import '../../../catalog/domain/entities/product_entity.dart';
 import '../../domain/entities/cart_entity.dart';
@@ -35,32 +36,39 @@ class PosPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final isWide = !ResponsiveLayout.isMobile(context);
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
+    return AuthRouteBackHandler(
+      child: Scaffold(
         backgroundColor: AppColors.background,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.textSecondary),
-          onPressed: () => context.safePop(),
-          tooltip: 'Back',
+        appBar: AppBar(
+          backgroundColor: AppColors.background,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: AppColors.textSecondary),
+            onPressed: () => context.safePop(),
+            tooltip: 'Back',
+          ),
+          title: Text(
+            'New Sale',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              color: AppColors.primary,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          actions: const [_CurrentUserBadge(), _LogoutButton()],
         ),
-        title: Text(
-          'New Sale',
-          style: Theme.of(context).textTheme.titleLarge
-              ?.copyWith(color: AppColors.primary, fontWeight: FontWeight.w700),
+        body: SafeArea(
+          child: Row(
+            children: [
+              Expanded(
+                flex: isWide ? 3 : 1,
+                child: const _ProductCatalogPane(),
+              ),
+              if (isWide) const Expanded(flex: 2, child: _CartPane()),
+            ],
+          ),
         ),
-        actions: const [_CurrentUserBadge()],
+        bottomNavigationBar: isWide ? null : const _MobileCartActionBar(),
       ),
-      body: SafeArea(
-        child: Row(
-          children: [
-            Expanded(flex: isWide ? 3 : 1, child: const _ProductCatalogPane()),
-            if (isWide) const Expanded(flex: 2, child: _CartPane()),
-          ],
-        ),
-      ),
-      bottomNavigationBar: isWide ? null : const _MobileCartActionBar(),
     );
   }
 }
@@ -82,6 +90,22 @@ class _CurrentUserBadge extends StatelessWidget {
               ?.copyWith(color: AppColors.textSecondary),
         ),
       ),
+    );
+  }
+}
+
+class _LogoutButton extends StatelessWidget {
+  const _LogoutButton();
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      icon: const Icon(Icons.logout, color: AppColors.textSecondary),
+      tooltip: 'Log out',
+      onPressed: () {
+        sl<SessionService>().clear();
+        context.go(AppRoutes.login);
+      },
     );
   }
 }
@@ -144,7 +168,11 @@ class _ProductCatalogPaneState extends State<_ProductCatalogPane> {
                 return const Center(child: CircularProgressIndicator());
               }
               if (state is PosError) {
-                return Center(child: Text(state.message));
+                return _ErrorView(
+                  message: state.message,
+                  onRetry: () =>
+                      context.read<PosBloc>().add(const LoadPosCatalog()),
+                );
               }
               if (state is PosLoaded) {
                 return _buildProductGrid(context, state);
@@ -159,7 +187,9 @@ class _ProductCatalogPaneState extends State<_ProductCatalogPane> {
 
   Widget _buildProductGrid(BuildContext context, PosLoaded state) {
     if (state.filteredProducts.isEmpty) {
-      return const Center(child: Text('No products found'));
+      return _EmptyCatalogView(
+        onRetry: () => context.read<PosBloc>().add(const LoadPosCatalog()),
+      );
     }
 
     return LayoutBuilder(
@@ -242,6 +272,86 @@ class _CategoryFilter extends StatelessWidget {
   }
 }
 
+class _ErrorView extends StatelessWidget {
+  final String message;
+  final VoidCallback onRetry;
+
+  const _ErrorView({required this.message, required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.error_outline, size: 48, color: AppColors.error),
+            const SizedBox(height: 12),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyMedium
+                  ?.copyWith(color: AppColors.error),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Retry'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyCatalogView extends StatelessWidget {
+  final VoidCallback onRetry;
+
+  const _EmptyCatalogView({required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.search_off_outlined,
+              size: 56,
+              color: AppColors.textSecondary.withValues(alpha: 0.5),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'No products found',
+              style: Theme.of(context).textTheme.bodyLarge
+                  ?.copyWith(color: AppColors.textSecondary),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Pull to refresh or tap Retry to reload the catalog.',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: AppColors.textSecondary.withValues(alpha: 0.7),
+              ),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Retry'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _CartPane extends StatelessWidget {
   const _CartPane();
 
@@ -303,6 +413,7 @@ class _MobileCartActionBar extends StatelessWidget {
                 ),
               ),
               ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(minimumSize: const Size(0, 52)),
                 onPressed: cart.isEmpty ? null : () => _openCartSheet(context),
                 icon: const Icon(Icons.shopping_cart_outlined),
                 label: const Text('View Cart'),

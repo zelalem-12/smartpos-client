@@ -55,6 +55,43 @@ void main() {
       expect(service.canAccess(AppRoutes.catalog), false);
     });
 
+    test('manager routes are a strict superset of cashier routes', () {
+      service.setUser('u1', 'Abebe', 'MANAGER');
+      final managerAccess = <String, bool>{
+        AppRoutes.pos: service.canAccess(AppRoutes.pos),
+        AppRoutes.checkout: service.canAccess(AppRoutes.checkout),
+        AppRoutes.receipt: service.canAccess(AppRoutes.receipt),
+        AppRoutes.catalog: service.canAccess(AppRoutes.catalog),
+        AppRoutes.reports: service.canAccess(AppRoutes.reports),
+        AppRoutes.creditNotes: service.canAccess(AppRoutes.creditNotes),
+        AppRoutes.cancellation: service.canAccess(AppRoutes.cancellation),
+        AppRoutes.syncQueue: service.canAccess(AppRoutes.syncQueue),
+        AppRoutes.audit: service.canAccess(AppRoutes.audit),
+        AppRoutes.settings: service.canAccess(AppRoutes.settings),
+      };
+
+      service.setUser('u2', 'Chala', 'CASHIER');
+      final cashierAccess = <String, bool>{
+        AppRoutes.pos: service.canAccess(AppRoutes.pos),
+        AppRoutes.checkout: service.canAccess(AppRoutes.checkout),
+        AppRoutes.receipt: service.canAccess(AppRoutes.receipt),
+        AppRoutes.catalog: service.canAccess(AppRoutes.catalog),
+        AppRoutes.reports: service.canAccess(AppRoutes.reports),
+        AppRoutes.creditNotes: service.canAccess(AppRoutes.creditNotes),
+        AppRoutes.cancellation: service.canAccess(AppRoutes.cancellation),
+        AppRoutes.syncQueue: service.canAccess(AppRoutes.syncQueue),
+        AppRoutes.audit: service.canAccess(AppRoutes.audit),
+        AppRoutes.settings: service.canAccess(AppRoutes.settings),
+      };
+
+      expect(cashierAccess.values.where((v) => v).length, 3);
+      for (final entry in cashierAccess.entries) {
+        if (entry.value) {
+          expect(managerAccess[entry.key], isTrue);
+        }
+      }
+    });
+
     test('clear removes authentication', () {
       service.setUser('u1', 'Abebe', 'MANAGER');
       expect(service.isAuthenticated, true);

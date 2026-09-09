@@ -42,6 +42,7 @@ import '../../features/pos/domain/usecases/remove_item_from_cart.dart';
 import '../../features/pos/domain/usecases/update_cart_item_quantity.dart';
 import '../../features/pos/presentation/bloc/cart_bloc.dart';
 import '../../features/pos/presentation/bloc/pos_bloc.dart';
+import '../../features/settings/presentation/cubit/cashier_management_cubit.dart';
 import '../database/app_database.dart';
 import '../network/api_client.dart';
 import '../printer/mock_printer_service.dart';
@@ -142,6 +143,10 @@ Future<void> initDependencies() async {
   // ─── Phase 5: Cashier / Staff Management ───────────────────────────
   sl.registerLazySingleton<CreateCashier>(
     () => CreateCashier(sl<AuthRepository>()),
+  );
+
+  sl.registerFactory<CashierManagementCubit>(
+    () => CashierManagementCubit(sl<UserRepository>(), sl<CreateCashier>()),
   );
 
   // ─── Phase 5: Catalog Management ───────────────────────────────────

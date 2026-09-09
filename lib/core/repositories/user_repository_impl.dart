@@ -15,6 +15,9 @@ class UserRepositoryImpl implements UserRepository {
   Future<List<User>> getActiveUsers() => _db.getActiveUsers();
 
   @override
+  Future<List<User>> getAllUsers() => _db.getAllUsers();
+
+  @override
   Future<User?> getUserById(String id) => _db.getUserById(id);
 
   @override

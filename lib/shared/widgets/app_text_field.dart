@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 
 /// Styled text field used throughout the app.
 class AppTextField extends StatelessWidget {
-  final String label;
+  final String? label;
   final String? hint;
   final TextEditingController? controller;
   final String? errorText;
@@ -20,7 +20,7 @@ class AppTextField extends StatelessWidget {
 
   const AppTextField({
     super.key,
-    required this.label,
+    this.label,
     this.hint,
     this.controller,
     this.errorText,
@@ -42,12 +42,14 @@ class AppTextField extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
-          label,
-          style: Theme.of(context).textTheme.bodyMedium
-              ?.copyWith(fontWeight: FontWeight.w500),
-        ),
-        const SizedBox(height: 6),
+        if (label != null) ...[
+          Text(
+            label!,
+            style: Theme.of(context).textTheme.bodyMedium
+                ?.copyWith(fontWeight: FontWeight.w500),
+          ),
+          const SizedBox(height: 6),
+        ],
         TextField(
           controller: controller,
           obscureText: obscureText,

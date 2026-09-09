@@ -85,8 +85,8 @@ class _LoginPageState extends State<LoginPage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               AppTextField(
-                                label: 'Username',
-                                hint: 'Enter username',
+                                key: const ValueKey('usernameField'),
+                                hint: 'username',
                                 controller: _usernameController,
                                 enabled: !isLoading,
                                 textInputAction: TextInputAction.next,
@@ -94,8 +94,8 @@ class _LoginPageState extends State<LoginPage> {
                               ),
                               const SizedBox(height: 20),
                               AppTextField(
-                                label: 'Password',
-                                hint: 'Enter password',
+                                key: const ValueKey('passwordField'),
+                                hint: 'password',
                                 controller: _passwordController,
                                 enabled: !isLoading,
                                 obscureText: _obscurePassword,

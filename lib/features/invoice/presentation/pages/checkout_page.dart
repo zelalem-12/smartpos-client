@@ -7,6 +7,7 @@ import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../shared/extensions/context_extensions.dart';
+import '../../../../shared/navigation/auth_route_back_handler.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../domain/entities/payment_method.dart';
@@ -20,42 +21,46 @@ class CheckoutPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.textSecondary),
-          onPressed: () => context.safePop(),
-          tooltip: 'Back',
+    return AuthRouteBackHandler(
+      child: Scaffold(
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: AppColors.textSecondary),
+            onPressed: () => context.safePop(),
+            tooltip: 'Back',
+          ),
+          title: Text(
+            'Checkout',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              color: AppColors.primary,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
         ),
-        title: Text(
-          'Checkout',
-          style: Theme.of(context).textTheme.titleLarge
-              ?.copyWith(color: AppColors.primary, fontWeight: FontWeight.w700),
-        ),
-      ),
-      body: BlocListener<CheckoutCubit, CheckoutState>(
-        listener: (context, state) {
-          if (state is CheckoutCompleted) {
-            context.pushReplacement(
-              '${AppRoutes.receipt}?invoiceId=${state.invoiceId}',
-            );
-          }
-        },
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: BlocBuilder<CheckoutCubit, CheckoutState>(
-              builder: (context, state) {
-                if (state is CheckoutLoaded) {
-                  return SingleChildScrollView(
-                    child: _buildBody(context, state),
-                  );
-                }
-                if (state is CheckoutCompleted) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                return const SizedBox.shrink();
-              },
+        body: BlocListener<CheckoutCubit, CheckoutState>(
+          listener: (context, state) {
+            if (state is CheckoutCompleted) {
+              context.pushReplacement(
+                '${AppRoutes.receipt}?invoiceId=${state.invoiceId}',
+              );
+            }
+          },
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: BlocBuilder<CheckoutCubit, CheckoutState>(
+                builder: (context, state) {
+                  if (state is CheckoutLoaded) {
+                    return SingleChildScrollView(
+                      child: _buildBody(context, state),
+                    );
+                  }
+                  if (state is CheckoutCompleted) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  return const SizedBox.shrink();
+                },
+              ),
             ),
           ),
         ),
