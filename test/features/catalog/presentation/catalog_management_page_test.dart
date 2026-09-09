@@ -14,41 +14,7 @@ import 'package:smartpos_client/features/catalog/presentation/bloc/catalog_event
 import 'package:smartpos_client/features/catalog/presentation/bloc/catalog_state.dart';
 import 'package:smartpos_client/features/catalog/presentation/pages/catalog_management_page.dart';
 
-class _FakeSessionService implements SessionService {
-  @override
-  Session? get currentSession =>
-      const Session(id: 'u1', name: 'Abebe', role: 'MANAGER');
-
-  @override
-  bool get isAuthenticated => true;
-
-  @override
-  bool get isManager => true;
-
-  @override
-  bool get isCashier => false;
-
-  @override
-  String? get currentUserName => currentSession?.name;
-
-  @override
-  String? get currentUserRole => currentSession?.role;
-
-  @override
-  String? get homeRoute => AppRoutes.manager;
-
-  @override
-  void setUser(String id, String name, String role) {}
-
-  @override
-  void clear() {}
-
-  @override
-  bool canAccess(String path) => true;
-
-  @override
-  Future<String?> evaluateRedirect(String path) async => null;
-}
+import '../../../shared/fakes/fake_session_service.dart';
 
 class MockCatalogBloc extends MockBloc<CatalogEvent, CatalogState>
     implements CatalogBloc {}
@@ -63,7 +29,7 @@ void main() {
     if (sl.isRegistered<SessionService>()) {
       sl.unregister<SessionService>();
     }
-    sl.registerLazySingleton<SessionService>(() => _FakeSessionService());
+    sl.registerLazySingleton<SessionService>(() => FakeSessionService());
   });
 
   tearDown(() {

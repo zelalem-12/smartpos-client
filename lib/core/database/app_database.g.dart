@@ -714,6 +714,27 @@ class $UsersTable extends Users with TableInfo<$UsersTable, User> {
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _passwordSaltMeta = const VerificationMeta(
+    'passwordSalt',
+  );
+  @override
+  late final GeneratedColumn<String> passwordSalt = GeneratedColumn<String>(
+    'password_salt',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _passwordIterationsMeta =
+      const VerificationMeta('passwordIterations');
+  @override
+  late final GeneratedColumn<int> passwordIterations = GeneratedColumn<int>(
+    'password_iterations',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _isActiveMeta = const VerificationMeta(
     'isActive',
   );
@@ -759,6 +780,8 @@ class $UsersTable extends Users with TableInfo<$UsersTable, User> {
     fullName,
     role,
     passwordHash,
+    passwordSalt,
+    passwordIterations,
     isActive,
     createdAt,
     updatedAt,
@@ -815,6 +838,24 @@ class $UsersTable extends Users with TableInfo<$UsersTable, User> {
     } else if (isInserting) {
       context.missing(_passwordHashMeta);
     }
+    if (data.containsKey('password_salt')) {
+      context.handle(
+        _passwordSaltMeta,
+        passwordSalt.isAcceptableOrUnknown(
+          data['password_salt']!,
+          _passwordSaltMeta,
+        ),
+      );
+    }
+    if (data.containsKey('password_iterations')) {
+      context.handle(
+        _passwordIterationsMeta,
+        passwordIterations.isAcceptableOrUnknown(
+          data['password_iterations']!,
+          _passwordIterationsMeta,
+        ),
+      );
+    }
     if (data.containsKey('is_active')) {
       context.handle(
         _isActiveMeta,
@@ -862,6 +903,14 @@ class $UsersTable extends Users with TableInfo<$UsersTable, User> {
         DriftSqlType.string,
         data['${effectivePrefix}password_hash'],
       )!,
+      passwordSalt: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}password_salt'],
+      ),
+      passwordIterations: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}password_iterations'],
+      ),
       isActive: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}is_active'],
@@ -896,8 +945,19 @@ class User extends DataClass implements Insertable<User> {
   /// Role: 'MANAGER' or 'CASHIER'.
   final String role;
 
-  /// SHA-256 hashed password.
+  /// Derived password hash. For v6+ rows this is a PBKDF2-HMAC-SHA256 key
+  /// (hex). For legacy rows created before v6 this is an unsalted SHA-256
+  /// digest and [passwordSalt]/[passwordIterations] are null; those rows
+  /// are transparently re-hashed on the next successful login.
   final String passwordHash;
+
+  /// Hex-encoded per-user salt used by PBKDF2. Null for legacy rows.
+  final String? passwordSalt;
+
+  /// PBKDF2 iteration count used to derive [passwordHash]. Null for legacy
+  /// rows; persisted so the cost can be raised in future migrations without
+  /// invalidating existing credentials.
+  final int? passwordIterations;
 
   /// Whether this user account is active.
   final bool isActive;
@@ -913,6 +973,8 @@ class User extends DataClass implements Insertable<User> {
     required this.fullName,
     required this.role,
     required this.passwordHash,
+    this.passwordSalt,
+    this.passwordIterations,
     required this.isActive,
     required this.createdAt,
     this.updatedAt,
@@ -925,6 +987,12 @@ class User extends DataClass implements Insertable<User> {
     map['full_name'] = Variable<String>(fullName);
     map['role'] = Variable<String>(role);
     map['password_hash'] = Variable<String>(passwordHash);
+    if (!nullToAbsent || passwordSalt != null) {
+      map['password_salt'] = Variable<String>(passwordSalt);
+    }
+    if (!nullToAbsent || passwordIterations != null) {
+      map['password_iterations'] = Variable<int>(passwordIterations);
+    }
     map['is_active'] = Variable<bool>(isActive);
     map['created_at'] = Variable<DateTime>(createdAt);
     if (!nullToAbsent || updatedAt != null) {
@@ -940,6 +1008,12 @@ class User extends DataClass implements Insertable<User> {
       fullName: Value(fullName),
       role: Value(role),
       passwordHash: Value(passwordHash),
+      passwordSalt: passwordSalt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(passwordSalt),
+      passwordIterations: passwordIterations == null && nullToAbsent
+          ? const Value.absent()
+          : Value(passwordIterations),
       isActive: Value(isActive),
       createdAt: Value(createdAt),
       updatedAt: updatedAt == null && nullToAbsent
@@ -959,6 +1033,8 @@ class User extends DataClass implements Insertable<User> {
       fullName: serializer.fromJson<String>(json['fullName']),
       role: serializer.fromJson<String>(json['role']),
       passwordHash: serializer.fromJson<String>(json['passwordHash']),
+      passwordSalt: serializer.fromJson<String?>(json['passwordSalt']),
+      passwordIterations: serializer.fromJson<int?>(json['passwordIterations']),
       isActive: serializer.fromJson<bool>(json['isActive']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime?>(json['updatedAt']),
@@ -973,6 +1049,8 @@ class User extends DataClass implements Insertable<User> {
       'fullName': serializer.toJson<String>(fullName),
       'role': serializer.toJson<String>(role),
       'passwordHash': serializer.toJson<String>(passwordHash),
+      'passwordSalt': serializer.toJson<String?>(passwordSalt),
+      'passwordIterations': serializer.toJson<int?>(passwordIterations),
       'isActive': serializer.toJson<bool>(isActive),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime?>(updatedAt),
@@ -985,6 +1063,8 @@ class User extends DataClass implements Insertable<User> {
     String? fullName,
     String? role,
     String? passwordHash,
+    Value<String?> passwordSalt = const Value.absent(),
+    Value<int?> passwordIterations = const Value.absent(),
     bool? isActive,
     DateTime? createdAt,
     Value<DateTime?> updatedAt = const Value.absent(),
@@ -994,6 +1074,10 @@ class User extends DataClass implements Insertable<User> {
     fullName: fullName ?? this.fullName,
     role: role ?? this.role,
     passwordHash: passwordHash ?? this.passwordHash,
+    passwordSalt: passwordSalt.present ? passwordSalt.value : this.passwordSalt,
+    passwordIterations: passwordIterations.present
+        ? passwordIterations.value
+        : this.passwordIterations,
     isActive: isActive ?? this.isActive,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt.present ? updatedAt.value : this.updatedAt,
@@ -1007,6 +1091,12 @@ class User extends DataClass implements Insertable<User> {
       passwordHash: data.passwordHash.present
           ? data.passwordHash.value
           : this.passwordHash,
+      passwordSalt: data.passwordSalt.present
+          ? data.passwordSalt.value
+          : this.passwordSalt,
+      passwordIterations: data.passwordIterations.present
+          ? data.passwordIterations.value
+          : this.passwordIterations,
       isActive: data.isActive.present ? data.isActive.value : this.isActive,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
@@ -1021,6 +1111,8 @@ class User extends DataClass implements Insertable<User> {
           ..write('fullName: $fullName, ')
           ..write('role: $role, ')
           ..write('passwordHash: $passwordHash, ')
+          ..write('passwordSalt: $passwordSalt, ')
+          ..write('passwordIterations: $passwordIterations, ')
           ..write('isActive: $isActive, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
@@ -1035,6 +1127,8 @@ class User extends DataClass implements Insertable<User> {
     fullName,
     role,
     passwordHash,
+    passwordSalt,
+    passwordIterations,
     isActive,
     createdAt,
     updatedAt,
@@ -1048,6 +1142,8 @@ class User extends DataClass implements Insertable<User> {
           other.fullName == this.fullName &&
           other.role == this.role &&
           other.passwordHash == this.passwordHash &&
+          other.passwordSalt == this.passwordSalt &&
+          other.passwordIterations == this.passwordIterations &&
           other.isActive == this.isActive &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
@@ -1059,6 +1155,8 @@ class UsersCompanion extends UpdateCompanion<User> {
   final Value<String> fullName;
   final Value<String> role;
   final Value<String> passwordHash;
+  final Value<String?> passwordSalt;
+  final Value<int?> passwordIterations;
   final Value<bool> isActive;
   final Value<DateTime> createdAt;
   final Value<DateTime?> updatedAt;
@@ -1069,6 +1167,8 @@ class UsersCompanion extends UpdateCompanion<User> {
     this.fullName = const Value.absent(),
     this.role = const Value.absent(),
     this.passwordHash = const Value.absent(),
+    this.passwordSalt = const Value.absent(),
+    this.passwordIterations = const Value.absent(),
     this.isActive = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -1080,6 +1180,8 @@ class UsersCompanion extends UpdateCompanion<User> {
     required String fullName,
     required String role,
     required String passwordHash,
+    this.passwordSalt = const Value.absent(),
+    this.passwordIterations = const Value.absent(),
     this.isActive = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -1095,6 +1197,8 @@ class UsersCompanion extends UpdateCompanion<User> {
     Expression<String>? fullName,
     Expression<String>? role,
     Expression<String>? passwordHash,
+    Expression<String>? passwordSalt,
+    Expression<int>? passwordIterations,
     Expression<bool>? isActive,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
@@ -1106,6 +1210,8 @@ class UsersCompanion extends UpdateCompanion<User> {
       if (fullName != null) 'full_name': fullName,
       if (role != null) 'role': role,
       if (passwordHash != null) 'password_hash': passwordHash,
+      if (passwordSalt != null) 'password_salt': passwordSalt,
+      if (passwordIterations != null) 'password_iterations': passwordIterations,
       if (isActive != null) 'is_active': isActive,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
@@ -1119,6 +1225,8 @@ class UsersCompanion extends UpdateCompanion<User> {
     Value<String>? fullName,
     Value<String>? role,
     Value<String>? passwordHash,
+    Value<String?>? passwordSalt,
+    Value<int?>? passwordIterations,
     Value<bool>? isActive,
     Value<DateTime>? createdAt,
     Value<DateTime?>? updatedAt,
@@ -1130,6 +1238,8 @@ class UsersCompanion extends UpdateCompanion<User> {
       fullName: fullName ?? this.fullName,
       role: role ?? this.role,
       passwordHash: passwordHash ?? this.passwordHash,
+      passwordSalt: passwordSalt ?? this.passwordSalt,
+      passwordIterations: passwordIterations ?? this.passwordIterations,
       isActive: isActive ?? this.isActive,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -1155,6 +1265,12 @@ class UsersCompanion extends UpdateCompanion<User> {
     if (passwordHash.present) {
       map['password_hash'] = Variable<String>(passwordHash.value);
     }
+    if (passwordSalt.present) {
+      map['password_salt'] = Variable<String>(passwordSalt.value);
+    }
+    if (passwordIterations.present) {
+      map['password_iterations'] = Variable<int>(passwordIterations.value);
+    }
     if (isActive.present) {
       map['is_active'] = Variable<bool>(isActive.value);
     }
@@ -1178,6 +1294,8 @@ class UsersCompanion extends UpdateCompanion<User> {
           ..write('fullName: $fullName, ')
           ..write('role: $role, ')
           ..write('passwordHash: $passwordHash, ')
+          ..write('passwordSalt: $passwordSalt, ')
+          ..write('passwordIterations: $passwordIterations, ')
           ..write('isActive: $isActive, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -8602,6 +8720,18 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $CancellationRequestsTable cancellationRequests =
       $CancellationRequestsTable(this);
   late final $DailyReportsTable dailyReports = $DailyReportsTable(this);
+  late final StoreConfigDao storeConfigDao = StoreConfigDao(
+    this as AppDatabase,
+  );
+  late final UsersDao usersDao = UsersDao(this as AppDatabase);
+  late final CategoriesDao categoriesDao = CategoriesDao(this as AppDatabase);
+  late final ProductsDao productsDao = ProductsDao(this as AppDatabase);
+  late final InvoicesDao invoicesDao = InvoicesDao(this as AppDatabase);
+  late final SyncQueueDao syncQueueDao = SyncQueueDao(this as AppDatabase);
+  late final AuditDao auditDao = AuditDao(this as AppDatabase);
+  late final TransactionDao transactionDao = TransactionDao(
+    this as AppDatabase,
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -8933,6 +9063,8 @@ typedef $$UsersTableCreateCompanionBuilder = UsersCompanion Function({
   required String fullName,
   required String role,
   required String passwordHash,
+  Value<String?> passwordSalt,
+  Value<int?> passwordIterations,
   Value<bool> isActive,
   Value<DateTime> createdAt,
   Value<DateTime?> updatedAt,
@@ -8944,6 +9076,8 @@ typedef $$UsersTableUpdateCompanionBuilder = UsersCompanion Function({
   Value<String> fullName,
   Value<String> role,
   Value<String> passwordHash,
+  Value<String?> passwordSalt,
+  Value<int?> passwordIterations,
   Value<bool> isActive,
   Value<DateTime> createdAt,
   Value<DateTime?> updatedAt,
@@ -9065,6 +9199,16 @@ class $$UsersTableFilterComposer extends Composer<_$AppDatabase, $UsersTable> {
 
   ColumnFilters<String> get passwordHash => $composableBuilder(
     column: $table.passwordHash,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get passwordSalt => $composableBuilder(
+    column: $table.passwordSalt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get passwordIterations => $composableBuilder(
+    column: $table.passwordIterations,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -9218,6 +9362,16 @@ class $$UsersTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get passwordSalt => $composableBuilder(
+    column: $table.passwordSalt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get passwordIterations => $composableBuilder(
+    column: $table.passwordIterations,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get isActive => $composableBuilder(
     column: $table.isActive,
     builder: (column) => ColumnOrderings(column),
@@ -9257,6 +9411,16 @@ class $$UsersTableAnnotationComposer
 
   GeneratedColumn<String> get passwordHash => $composableBuilder(
     column: $table.passwordHash,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get passwordSalt => $composableBuilder(
+    column: $table.passwordSalt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get passwordIterations => $composableBuilder(
+    column: $table.passwordIterations,
     builder: (column) => column,
   );
 
@@ -9409,6 +9573,8 @@ class $$UsersTableTableManager
                 Value<String> fullName = const Value.absent(),
                 Value<String> role = const Value.absent(),
                 Value<String> passwordHash = const Value.absent(),
+                Value<String?> passwordSalt = const Value.absent(),
+                Value<int?> passwordIterations = const Value.absent(),
                 Value<bool> isActive = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime?> updatedAt = const Value.absent(),
@@ -9419,6 +9585,8 @@ class $$UsersTableTableManager
                 fullName: fullName,
                 role: role,
                 passwordHash: passwordHash,
+                passwordSalt: passwordSalt,
+                passwordIterations: passwordIterations,
                 isActive: isActive,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
@@ -9431,6 +9599,8 @@ class $$UsersTableTableManager
                 required String fullName,
                 required String role,
                 required String passwordHash,
+                Value<String?> passwordSalt = const Value.absent(),
+                Value<int?> passwordIterations = const Value.absent(),
                 Value<bool> isActive = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime?> updatedAt = const Value.absent(),
@@ -9441,6 +9611,8 @@ class $$UsersTableTableManager
                 fullName: fullName,
                 role: role,
                 passwordHash: passwordHash,
+                passwordSalt: passwordSalt,
+                passwordIterations: passwordIterations,
                 isActive: isActive,
                 createdAt: createdAt,
                 updatedAt: updatedAt,

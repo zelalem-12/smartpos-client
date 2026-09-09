@@ -20,6 +20,17 @@ class AuthLocalSource {
     }
   }
 
+  /// Update an existing user (e.g. transparent password re-hash on login).
+  ///
+  /// Throws [CacheFailure] if the database write fails.
+  Future<void> updateUser(UsersCompanion user) async {
+    try {
+      await _db.updateUser(user);
+    } catch (e) {
+      throw CacheFailure('Failed to update user: $e');
+    }
+  }
+
   /// Check if any active manager exists.
   Future<bool> hasManager() => _db.hasManager();
 

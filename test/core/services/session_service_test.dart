@@ -116,10 +116,17 @@ void main() {
     });
 
     group('evaluateRedirect', () {
+      // Each test below stubs the repos, constructs a fresh SessionService,
+      // and calls init() to load the cached startup state the synchronous
+      // redirect guard reads.
+
       test('redirects to activation when device not activated', () async {
         when(() => mockStoreRepo.isDeviceActivated())
             .thenAnswer((_) async => false);
-        final result = await service.evaluateRedirect(AppRoutes.pos);
+        when(() => mockUserRepo.hasManager()).thenAnswer((_) async => false);
+        service = SessionService(mockStoreRepo, mockUserRepo);
+        await service.init();
+        final result = service.evaluateRedirect(AppRoutes.pos);
         expect(result, AppRoutes.activation);
       });
 
@@ -127,7 +134,9 @@ void main() {
         when(() => mockStoreRepo.isDeviceActivated())
             .thenAnswer((_) async => true);
         when(() => mockUserRepo.hasManager()).thenAnswer((_) async => false);
-        final result = await service.evaluateRedirect(AppRoutes.login);
+        service = SessionService(mockStoreRepo, mockUserRepo);
+        await service.init();
+        final result = service.evaluateRedirect(AppRoutes.login);
         expect(result, AppRoutes.managerSetup);
       });
 
@@ -135,7 +144,9 @@ void main() {
         when(() => mockStoreRepo.isDeviceActivated())
             .thenAnswer((_) async => true);
         when(() => mockUserRepo.hasManager()).thenAnswer((_) async => true);
-        final result = await service.evaluateRedirect(AppRoutes.pos);
+        service = SessionService(mockStoreRepo, mockUserRepo);
+        await service.init();
+        final result = service.evaluateRedirect(AppRoutes.pos);
         expect(result, AppRoutes.login);
       });
 
@@ -143,7 +154,9 @@ void main() {
         when(() => mockStoreRepo.isDeviceActivated())
             .thenAnswer((_) async => true);
         when(() => mockUserRepo.hasManager()).thenAnswer((_) async => true);
-        final result = await service.evaluateRedirect(AppRoutes.login);
+        service = SessionService(mockStoreRepo, mockUserRepo);
+        await service.init();
+        final result = service.evaluateRedirect(AppRoutes.login);
         expect(result, isNull);
       });
 
@@ -151,7 +164,9 @@ void main() {
         when(() => mockStoreRepo.isDeviceActivated())
             .thenAnswer((_) async => true);
         when(() => mockUserRepo.hasManager()).thenAnswer((_) async => true);
-        final result = await service.evaluateRedirect(AppRoutes.activation);
+        service = SessionService(mockStoreRepo, mockUserRepo);
+        await service.init();
+        final result = service.evaluateRedirect(AppRoutes.activation);
         expect(result, AppRoutes.login);
       });
 
@@ -159,28 +174,34 @@ void main() {
         when(() => mockStoreRepo.isDeviceActivated())
             .thenAnswer((_) async => true);
         when(() => mockUserRepo.hasManager()).thenAnswer((_) async => true);
-        final result = await service.evaluateRedirect(AppRoutes.managerSetup);
+        service = SessionService(mockStoreRepo, mockUserRepo);
+        await service.init();
+        final result = service.evaluateRedirect(AppRoutes.managerSetup);
         expect(result, AppRoutes.login);
       });
 
       test(
         'redirects public routes to home when authenticated as manager',
         () async {
-          service.setUser('u1', 'Abebe', 'MANAGER');
           when(() => mockStoreRepo.isDeviceActivated())
               .thenAnswer((_) async => true);
           when(() => mockUserRepo.hasManager()).thenAnswer((_) async => true);
-          final result = await service.evaluateRedirect(AppRoutes.login);
+          service = SessionService(mockStoreRepo, mockUserRepo);
+          await service.init();
+          service.setUser('u1', 'Abebe', 'MANAGER');
+          final result = service.evaluateRedirect(AppRoutes.login);
           expect(result, AppRoutes.manager);
         },
       );
 
       test('redirects restricted routes to home for cashier', () async {
-        service.setUser('u2', 'Chala', 'CASHIER');
         when(() => mockStoreRepo.isDeviceActivated())
             .thenAnswer((_) async => true);
         when(() => mockUserRepo.hasManager()).thenAnswer((_) async => true);
-        final result = await service.evaluateRedirect(AppRoutes.reports);
+        service = SessionService(mockStoreRepo, mockUserRepo);
+        await service.init();
+        service.setUser('u2', 'Chala', 'CASHIER');
+        final result = service.evaluateRedirect(AppRoutes.reports);
         expect(result, AppRoutes.cashier);
       });
 
@@ -188,19 +209,39 @@ void main() {
         when(() => mockStoreRepo.isDeviceActivated())
             .thenAnswer((_) async => true);
         when(() => mockUserRepo.hasManager()).thenAnswer((_) async => true);
+        service = SessionService(mockStoreRepo, mockUserRepo);
+        await service.init();
 
         service.setUser('u1', 'Abebe', 'MANAGER');
-        expect(
-          await service.evaluateRedirect(AppRoutes.cashier),
-          AppRoutes.manager,
-        );
+        expect(service.evaluateRedirect(AppRoutes.cashier), AppRoutes.manager);
 
         service.setUser('u2', 'Chala', 'CASHIER');
-        expect(
-          await service.evaluateRedirect(AppRoutes.manager),
-          AppRoutes.cashier,
-        );
+        expect(service.evaluateRedirect(AppRoutes.manager), AppRoutes.cashier);
       });
+
+      test(
+        'refresh reloads cached startup state and notifies listeners',
+        () async {
+          var activatedCalls = 0;
+          when(() => mockStoreRepo.isDeviceActivated()).thenAnswer((_) async {
+            activatedCalls++;
+            return activatedCalls == 1 ? false : true;
+          });
+          when(() => mockUserRepo.hasManager()).thenAnswer((_) async => true);
+          service = SessionService(mockStoreRepo, mockUserRepo);
+          await service.init();
+          expect(service.isDeviceActivated, isFalse);
+          expect(service.evaluateRedirect(AppRoutes.pos), AppRoutes.activation);
+
+          var notified = 0;
+          service.addListener(() => notified++);
+
+          await service.refresh();
+          expect(service.isDeviceActivated, isTrue);
+          expect(notified, 1);
+          expect(service.evaluateRedirect(AppRoutes.pos), AppRoutes.login);
+        },
+      );
     });
   });
 }

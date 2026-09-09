@@ -24,41 +24,7 @@ import 'package:smartpos_client/features/pos/presentation/bloc/pos_state.dart';
 import 'package:smartpos_client/features/pos/presentation/pages/pos_page.dart';
 import 'package:smartpos_client/features/pos/presentation/widgets/pos_product_card.dart';
 
-class _FakeSessionService implements SessionService {
-  @override
-  Session? get currentSession =>
-      const Session(id: 'u1', name: 'Abebe', role: 'MANAGER');
-
-  @override
-  bool get isAuthenticated => true;
-
-  @override
-  bool get isManager => true;
-
-  @override
-  bool get isCashier => false;
-
-  @override
-  String? get currentUserName => currentSession?.name;
-
-  @override
-  String? get currentUserRole => currentSession?.role;
-
-  @override
-  String? get homeRoute => AppRoutes.manager;
-
-  @override
-  void setUser(String id, String name, String role) {}
-
-  @override
-  void clear() {}
-
-  @override
-  bool canAccess(String path) => true;
-
-  @override
-  Future<String?> evaluateRedirect(String path) async => null;
-}
+import '../../../shared/fakes/fake_session_service.dart';
 
 void main() {
   late AppDatabase db;
@@ -68,7 +34,7 @@ void main() {
     if (sl.isRegistered<SessionService>()) {
       sl.unregister<SessionService>();
     }
-    sl.registerLazySingleton<SessionService>(() => _FakeSessionService());
+    sl.registerLazySingleton<SessionService>(() => FakeSessionService());
 
     db = AppDatabase.forTesting();
     repository = CatalogRepositoryImpl(CatalogLocalSource(db));

@@ -38,14 +38,16 @@ import 'app_routes.dart';
 /// Creates the GoRouter with redirect guards.
 ///
 /// Guard logic is delegated to [SessionService] for testability.
-/// See [SessionService.evaluateRedirect] for the full flow.
+/// See [SessionService.evaluateRedirect] for the full flow. The router
+/// re-evaluates redirects whenever the [SessionService] notifies listeners
+/// (login, logout, activation, manager setup) via `refreshListenable`.
 GoRouter createRouter() {
+  final session = sl<SessionService>();
   return GoRouter(
     initialLocation: AppRoutes.login,
-    redirect: (context, state) {
-      final session = sl<SessionService>();
-      return session.evaluateRedirect(state.matchedLocation);
-    },
+    refreshListenable: session,
+    redirect: (context, state) =>
+        session.evaluateRedirect(state.matchedLocation),
     routes: [
       GoRoute(
         path: AppRoutes.activation,

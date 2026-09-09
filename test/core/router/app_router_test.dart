@@ -169,6 +169,9 @@ void _resetAndRegisterMocks() {
   sl.registerLazySingleton<SessionService>(
     () => SessionService(sl<StoreConfigRepository>(), sl<UserRepository>()),
   );
+  // Seed the cached startup state so the synchronous redirect guard works
+  // without an async init() round-trip in every widget test.
+  sl<SessionService>().seedStartupState(isActivated: true, hasManager: true);
 
   sl.registerFactory<LoginCubit>(() => MockLoginCubit());
   sl.registerFactory<CatalogBloc>(() => MockCatalogBloc());

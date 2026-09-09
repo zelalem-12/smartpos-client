@@ -19,8 +19,19 @@ class Users extends Table {
   /// Role: 'MANAGER' or 'CASHIER'.
   TextColumn get role => text().withLength(min: 1, max: 20)();
 
-  /// SHA-256 hashed password.
+  /// Derived password hash. For v6+ rows this is a PBKDF2-HMAC-SHA256 key
+  /// (hex). For legacy rows created before v6 this is an unsalted SHA-256
+  /// digest and [passwordSalt]/[passwordIterations] are null; those rows
+  /// are transparently re-hashed on the next successful login.
   TextColumn get passwordHash => text()();
+
+  /// Hex-encoded per-user salt used by PBKDF2. Null for legacy rows.
+  TextColumn get passwordSalt => text().nullable()();
+
+  /// PBKDF2 iteration count used to derive [passwordHash]. Null for legacy
+  /// rows; persisted so the cost can be raised in future migrations without
+  /// invalidating existing credentials.
+  IntColumn get passwordIterations => integer().nullable()();
 
   /// Whether this user account is active.
   BoolColumn get isActive => boolean().withDefault(const Constant(true))();

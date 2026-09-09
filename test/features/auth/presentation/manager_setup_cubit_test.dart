@@ -2,6 +2,9 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:smartpos_client/core/error/failures.dart';
+import 'package:smartpos_client/core/repositories/store_config_repository.dart';
+import 'package:smartpos_client/core/repositories/user_repository.dart';
+import 'package:smartpos_client/core/services/session_service.dart';
 import 'package:smartpos_client/features/auth/domain/entities/user_entity.dart';
 import 'package:smartpos_client/features/auth/domain/usecases/create_manager.dart';
 import 'package:smartpos_client/features/auth/presentation/cubit/manager_setup_cubit.dart';
@@ -9,8 +12,13 @@ import 'package:smartpos_client/features/auth/presentation/cubit/manager_setup_s
 
 class MockCreateManager extends Mock implements CreateManager {}
 
+class MockStoreConfigRepository extends Mock implements StoreConfigRepository {}
+
+class MockUserRepository extends Mock implements UserRepository {}
+
 void main() {
   late MockCreateManager mockCreateManager;
+  late SessionService sessionService;
 
   final manager = UserEntity(
     id: 'abc-123',
@@ -24,11 +32,16 @@ void main() {
 
   setUp(() {
     mockCreateManager = MockCreateManager();
+    final storeRepo = MockStoreConfigRepository();
+    final userRepo = MockUserRepository();
+    when(() => storeRepo.isDeviceActivated()).thenAnswer((_) async => true);
+    when(() => userRepo.hasManager()).thenAnswer((_) async => false);
+    sessionService = SessionService(storeRepo, userRepo);
   });
 
   group('ManagerSetupCubit', () {
     test('initial state is ManagerSetupInitial', () {
-      final cubit = ManagerSetupCubit(mockCreateManager);
+      final cubit = ManagerSetupCubit(mockCreateManager, sessionService);
       expect(cubit.state, isA<ManagerSetupInitial>());
       cubit.close();
     });
@@ -43,7 +56,7 @@ void main() {
             password: '1234',
           ),
         ).thenAnswer((_) async => manager);
-        return ManagerSetupCubit(mockCreateManager);
+        return ManagerSetupCubit(mockCreateManager, sessionService);
       },
       act: (cubit) => cubit.submit(
         username: 'abebe01',
@@ -63,7 +76,7 @@ void main() {
 
     blocTest<ManagerSetupCubit, ManagerSetupState>(
       'emits [Loading, Error] when passwords do not match',
-      build: () => ManagerSetupCubit(mockCreateManager),
+      build: () => ManagerSetupCubit(mockCreateManager, sessionService),
       act: (cubit) => cubit.submit(
         username: 'abebe01',
         fullName: 'Abebe Bikila',
@@ -90,7 +103,7 @@ void main() {
             password: any(named: 'password'),
           ),
         ).thenThrow(const ValidationFailure('Username is required'));
-        return ManagerSetupCubit(mockCreateManager);
+        return ManagerSetupCubit(mockCreateManager, sessionService);
       },
       act: (cubit) => cubit.submit(
         username: '',
@@ -118,7 +131,7 @@ void main() {
             password: any(named: 'password'),
           ),
         ).thenThrow(const ConflictFailure('A manager already exists'));
-        return ManagerSetupCubit(mockCreateManager);
+        return ManagerSetupCubit(mockCreateManager, sessionService);
       },
       act: (cubit) => cubit.submit(
         username: 'abebe01',

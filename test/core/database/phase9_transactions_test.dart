@@ -63,8 +63,8 @@ void main() {
     return rows.map((r) => r.read<String>('name')).toList();
   }
 
-  test('schema v5 exposes all fiscal tables and new columns', () async {
-    expect(db.schemaVersion, 5);
+  test('schema v6 exposes all fiscal tables and new columns', () async {
+    expect(db.schemaVersion, 6);
     final names =
         (await db
                 .customSelect(
@@ -90,6 +90,10 @@ void main() {
 
     final auditColumns = await tableColumns('audit_logs');
     expect(auditColumns, contains('payload'));
+
+    final userColumns = await tableColumns('users');
+    expect(userColumns, contains('password_salt'));
+    expect(userColumns, contains('password_iterations'));
   });
 
   test(

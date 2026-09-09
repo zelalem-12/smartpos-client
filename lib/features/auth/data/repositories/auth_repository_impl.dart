@@ -1,22 +1,30 @@
-import 'dart:convert';
-
-import 'package:crypto/crypto.dart';
 import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../../core/database/app_database.dart';
 import '../../../../core/error/failures.dart';
+import '../../../../core/utils/password_hasher.dart';
 import '../../domain/entities/user_entity.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../datasources/auth_local_source.dart';
 
 /// Concrete auth repository backed by the local Drift database.
+///
+/// Passwords are hashed with PBKDF2-HMAC-SHA256 (per-user salt, persisted
+/// iteration count). Legacy rows created before schema v6 hold an unsalted
+/// SHA-256 digest and are transparently re-hashed with PBKDF2 on the next
+/// successful login, so existing installations are upgraded without forcing
+/// a password reset.
 class AuthRepositoryImpl implements AuthRepository {
   final AuthLocalSource _localSource;
   final Uuid _uuid;
+  final PasswordHasher _hasher;
 
-  AuthRepositoryImpl({required this._localSource, Uuid? uuid})
-    : _uuid = uuid ?? const Uuid();
+  AuthRepositoryImpl({
+    required this._localSource,
+    Uuid? uuid,
+    this._hasher = const PasswordHasher(),
+  }) : _uuid = uuid ?? const Uuid();
 
   @override
   Future<bool> hasManager() => _localSource.hasManager();
@@ -71,14 +79,16 @@ class AuthRepositoryImpl implements AuthRepository {
 
     final now = DateTime.now();
     final id = _uuid.v4();
-    final passwordHash = _hashPassword(password);
+    final hash = _hasher.hash(password);
 
     final user = UsersCompanion.insert(
       id: id,
       username: username,
       fullName: fullName,
       role: role,
-      passwordHash: passwordHash,
+      passwordHash: hash.hashHex,
+      passwordSalt: Value(hash.saltHex),
+      passwordIterations: Value(hash.iterations),
       isActive: const Value(true),
       createdAt: Value(now),
     );
@@ -90,7 +100,7 @@ class AuthRepositoryImpl implements AuthRepository {
       username: username,
       fullName: fullName,
       role: role,
-      passwordHash: passwordHash,
+      passwordHash: hash.hashHex,
       isActive: true,
       createdAt: now,
     );
@@ -107,12 +117,46 @@ class AuthRepositoryImpl implements AuthRepository {
       throw const AuthFailure('Invalid username or password');
     }
 
-    final passwordHash = _hashPassword(password);
-    if (user.passwordHash != passwordHash) {
+    final verified = _verifyStoredPassword(user, password);
+    if (!verified) {
       throw const AuthFailure('Invalid username or password');
     }
 
+    // Transparent upgrade: legacy unsalted SHA-256 rows are re-hashed with
+    // PBKDF2 on the first successful login after the v6 migration.
+    if (user.passwordIterations == null || user.passwordSalt == null) {
+      await _upgradeLegacyPassword(user.id, password);
+    }
+
     return _mapToEntity(user);
+  }
+
+  bool _verifyStoredPassword(User user, String password) {
+    if (user.passwordSalt != null && user.passwordIterations != null) {
+      return _hasher.verify(
+        password,
+        PasswordHash(
+          saltHex: user.passwordSalt!,
+          iterations: user.passwordIterations!,
+          hashHex: user.passwordHash,
+        ),
+      );
+    }
+    // Legacy unsalted SHA-256 row.
+    return _hasher.verifyLegacySha256(password, user.passwordHash);
+  }
+
+  Future<void> _upgradeLegacyPassword(String userId, String password) async {
+    final hash = _hasher.hash(password);
+    await _localSource.updateUser(
+      UsersCompanion(
+        id: Value(userId),
+        passwordHash: Value(hash.hashHex),
+        passwordSalt: Value(hash.saltHex),
+        passwordIterations: Value(hash.iterations),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
   }
 
   UserEntity _mapToEntity(User user) {
@@ -126,11 +170,5 @@ class AuthRepositoryImpl implements AuthRepository {
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     );
-  }
-
-  String _hashPassword(String password) {
-    final bytes = utf8.encode(password);
-    final digest = sha256.convert(bytes);
-    return digest.toString();
   }
 }

@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import '../repositories/store_config_repository.dart';
 import '../repositories/user_repository.dart';
 import '../router/app_routes.dart';
@@ -11,17 +13,28 @@ class Session {
   const Session({required this.id, required this.name, required this.role});
 }
 
-/// Determines the correct initial route based on device and user state
-/// and tracks the currently authenticated user in memory.
+/// Determines the correct initial route based on device and user state and
+/// tracks the currently authenticated user in memory.
 ///
-/// Encapsulates the guard logic that was previously embedded in the
-/// GoRouter redirect callback. This makes the logic testable and
-/// reusable without depending on router internals.
-class SessionService {
+/// Startup state (device activation, manager existence) is loaded **once**
+/// by [init] and cached so that [evaluateRedirect] is synchronous — the
+/// GoRouter redirect callback must not perform async DB work on every
+/// navigation. After any state-changing operation (login, logout,
+/// activation, manager setup) call [refresh] to re-query the cached state
+/// and notify the router via [ChangeNotifier].
+///
+/// This class is a [ChangeNotifier] so GoRouter's `refreshListenable` can
+/// re-evaluate redirects when the session changes.
+class SessionService extends ChangeNotifier {
   final StoreConfigRepository _storeConfigRepo;
   final UserRepository _userRepo;
 
   Session? _currentSession;
+  bool _isActivated = false;
+  bool _hasManager = false;
+  bool _initialized = false;
+
+  SessionService(this._storeConfigRepo, this._userRepo);
 
   Session? get currentSession => _currentSession;
 
@@ -35,16 +48,60 @@ class SessionService {
 
   String? get currentUserRole => _currentSession?.role;
 
-  SessionService(this._storeConfigRepo, this._userRepo);
+  /// Whether [init] has completed at least once.
+  bool get isInitialized => _initialized;
+
+  /// Cached device activation flag (loaded by [init], refreshed by [refresh]).
+  bool get isDeviceActivated => _isActivated;
+
+  /// Cached manager-existence flag (loaded by [init], refreshed by [refresh]).
+  bool get hasManager => _hasManager;
+
+  /// Load activation and manager state from the database exactly once at
+  /// startup. Must complete before the router is created so that
+  /// [evaluateRedirect] can run synchronously.
+  Future<void> init() async {
+    await _loadStartupState();
+    _initialized = true;
+  }
+
+  Future<void> _loadStartupState() async {
+    _isActivated = await _storeConfigRepo.isDeviceActivated();
+    _hasManager = await _userRepo.hasManager();
+  }
 
   /// Set the currently authenticated user.
   void setUser(String id, String name, String role) {
     _currentSession = Session(id: id, name: name, role: role);
+    notifyListeners();
   }
 
-  /// Clear the current session (e.g., logout or app termination).
+  /// Clear the current session (e.g., logout).
   void clear() {
     _currentSession = null;
+    notifyListeners();
+  }
+
+  /// Re-query the cached startup state and notify listeners.
+  ///
+  /// Call this after any operation that changes device activation or manager
+  /// existence (activation, manager setup, manager deactivation). Login and
+  /// logout use [setUser]/[clear] which notify on their own.
+  Future<void> refresh() async {
+    await _loadStartupState();
+    notifyListeners();
+  }
+
+  /// Test-only seam to seed the cached startup state without a database.
+  ///
+  /// Marks the service as initialized and sets the cached flags, then
+  /// notifies listeners so a router with `refreshListenable` re-evaluates.
+  @visibleForTesting
+  void seedStartupState({required bool isActivated, required bool hasManager}) {
+    _isActivated = isActivated;
+    _hasManager = hasManager;
+    _initialized = true;
+    notifyListeners();
   }
 
   /// The default landing route for the currently authenticated user.
@@ -83,32 +140,29 @@ class SessionService {
     AppRoutes.login,
   };
 
-  /// Evaluate redirect based on current device/user state and the
-  /// requested [path].
+  /// Evaluate redirect based on the cached device/user state and the
+  /// requested [path]. Synchronous by design — call [init] (or [refresh])
+  /// first so the cache is current.
   ///
   /// Returns a redirect path, or `null` if no redirect is needed.
-  Future<String?> evaluateRedirect(String path) async {
-    final isActivated = await _storeConfigRepo.isDeviceActivated();
-
+  String? evaluateRedirect(String path) {
     // Guard 1: Device not activated -> force activation
-    if (!isActivated && path != AppRoutes.activation) {
+    if (!_isActivated && path != AppRoutes.activation) {
       return AppRoutes.activation;
     }
 
     // Guard 2: No manager exists -> force manager setup
-    final hasManager = await _userRepo.hasManager();
-
-    if (isActivated && !hasManager && path != AppRoutes.managerSetup) {
+    if (_isActivated && !_hasManager && path != AppRoutes.managerSetup) {
       return AppRoutes.managerSetup;
     }
 
     // Guard 3: Already activated and trying to go to activation, skip ahead
-    if (isActivated && path == AppRoutes.activation) {
-      if (!hasManager) return AppRoutes.managerSetup;
+    if (_isActivated && path == AppRoutes.activation) {
+      if (!_hasManager) return AppRoutes.managerSetup;
       return isAuthenticated ? homeRoute : AppRoutes.login;
     }
 
-    if (isActivated && hasManager && path == AppRoutes.managerSetup) {
+    if (_isActivated && _hasManager && path == AppRoutes.managerSetup) {
       return isAuthenticated ? homeRoute : AppRoutes.login;
     }
 
@@ -120,8 +174,8 @@ class SessionService {
 
     // Guard 5: Activated + manager exists but not logged in -> force pin login
     // for all non-public routes
-    if (isActivated &&
-        hasManager &&
+    if (_isActivated &&
+        _hasManager &&
         !isAuthenticated &&
         !_publicPaths.contains(path)) {
       return AppRoutes.login;

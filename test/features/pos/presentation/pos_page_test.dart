@@ -29,45 +29,11 @@ import 'package:smartpos_client/core/router/app_routes.dart';
 import 'package:smartpos_client/core/services/session_service.dart';
 import 'package:smartpos_client/core/theme/app_theme.dart';
 
+import '../../../shared/fakes/fake_session_service.dart';
+
 class MockPosBloc extends MockBloc<PosEvent, PosState> implements PosBloc {}
 
 class MockCartBloc extends MockBloc<CartEvent, CartState> implements CartBloc {}
-
-class _FakeSessionService implements SessionService {
-  @override
-  Session? get currentSession =>
-      const Session(id: 'u1', name: 'Abebe', role: 'MANAGER');
-
-  @override
-  bool get isAuthenticated => true;
-
-  @override
-  bool get isManager => true;
-
-  @override
-  bool get isCashier => false;
-
-  @override
-  String? get currentUserName => currentSession?.name;
-
-  @override
-  String? get currentUserRole => currentSession?.role;
-
-  @override
-  String? get homeRoute => AppRoutes.manager;
-
-  @override
-  void setUser(String id, String name, String role) {}
-
-  @override
-  void clear() {}
-
-  @override
-  bool canAccess(String path) => true;
-
-  @override
-  Future<String?> evaluateRedirect(String path) async => null;
-}
 
 void main() {
   late CartRepository cartRepository;
@@ -80,7 +46,7 @@ void main() {
     if (sl.isRegistered<SessionService>()) {
       sl.unregister<SessionService>();
     }
-    sl.registerLazySingleton<SessionService>(() => _FakeSessionService());
+    sl.registerLazySingleton<SessionService>(() => FakeSessionService());
   });
 
   tearDown(() {

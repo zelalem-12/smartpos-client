@@ -2,6 +2,9 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:smartpos_client/core/error/failures.dart';
+import 'package:smartpos_client/core/repositories/store_config_repository.dart';
+import 'package:smartpos_client/core/repositories/user_repository.dart';
+import 'package:smartpos_client/core/services/session_service.dart';
 import 'package:smartpos_client/features/activation/domain/entities/store_config_entity.dart';
 import 'package:smartpos_client/features/activation/domain/usecases/activate_device.dart';
 import 'package:smartpos_client/features/activation/presentation/cubit/activation_cubit.dart';
@@ -9,8 +12,13 @@ import 'package:smartpos_client/features/activation/presentation/cubit/activatio
 
 class MockActivateDevice extends Mock implements ActivateDevice {}
 
+class MockStoreConfigRepository extends Mock implements StoreConfigRepository {}
+
+class MockUserRepository extends Mock implements UserRepository {}
+
 void main() {
   late MockActivateDevice mockActivateDevice;
+  late SessionService sessionService;
 
   const validConfig = StoreConfigEntity(
     licenseKey: 'MOR-4A9K2L8Q',
@@ -25,11 +33,16 @@ void main() {
 
   setUp(() {
     mockActivateDevice = MockActivateDevice();
+    final storeRepo = MockStoreConfigRepository();
+    final userRepo = MockUserRepository();
+    when(() => storeRepo.isDeviceActivated()).thenAnswer((_) async => false);
+    when(() => userRepo.hasManager()).thenAnswer((_) async => false);
+    sessionService = SessionService(storeRepo, userRepo);
   });
 
   group('ActivationCubit', () {
     test('initial state is ActivationInitial', () {
-      final cubit = ActivationCubit(mockActivateDevice);
+      final cubit = ActivationCubit(mockActivateDevice, sessionService);
       expect(cubit.state, isA<ActivationInitial>());
       cubit.close();
     });
@@ -39,7 +52,7 @@ void main() {
       build: () {
         when(() => mockActivateDevice('MOR-4A9K2L8Q'))
             .thenAnswer((_) async => validConfig);
-        return ActivationCubit(mockActivateDevice);
+        return ActivationCubit(mockActivateDevice, sessionService);
       },
       act: (cubit) => cubit.activate('MOR-4A9K2L8Q'),
       expect: () => [
@@ -57,7 +70,7 @@ void main() {
       build: () {
         when(() => mockActivateDevice(''))
             .thenThrow(const ValidationFailure('License key is required'));
-        return ActivationCubit(mockActivateDevice);
+        return ActivationCubit(mockActivateDevice, sessionService);
       },
       act: (cubit) => cubit.activate(''),
       expect: () => [
@@ -76,7 +89,7 @@ void main() {
         when(() => mockActivateDevice('XXXXX')).thenThrow(
           const ValidationFailure('License key must start with "MOR-"'),
         );
-        return ActivationCubit(mockActivateDevice);
+        return ActivationCubit(mockActivateDevice, sessionService);
       },
       act: (cubit) => cubit.activate('XXXXX'),
       expect: () => [
@@ -94,7 +107,7 @@ void main() {
       build: () {
         when(() => mockActivateDevice('MOR-00000000'))
             .thenThrow(const ServerFailure('Server unavailable'));
-        return ActivationCubit(mockActivateDevice);
+        return ActivationCubit(mockActivateDevice, sessionService);
       },
       act: (cubit) => cubit.activate('MOR-00000000'),
       expect: () => [

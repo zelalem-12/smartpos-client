@@ -158,7 +158,7 @@ Future<void> initDependencies() async {
 
   // Cubit — Factory (fresh instance per screen)
   sl.registerFactory<ActivationCubit>(
-    () => ActivationCubit(sl<ActivateDevice>()),
+    () => ActivationCubit(sl<ActivateDevice>(), sl<SessionService>()),
   );
 
   // ─── Phase 3: Auth / Manager Setup ─────────────────────────────────
@@ -176,7 +176,7 @@ Future<void> initDependencies() async {
   );
 
   sl.registerFactory<ManagerSetupCubit>(
-    () => ManagerSetupCubit(sl<CreateManager>()),
+    () => ManagerSetupCubit(sl<CreateManager>(), sl<SessionService>()),
   );
 
   sl.registerLazySingleton<LoginWithCredentials>(
@@ -442,11 +442,11 @@ Future<void> initDependencies() async {
 
 /// Creates the production database executor.
 ///
-/// Uses drift_flutter's driftDatabase() in production.
-/// For Phase 1 we use a simple NativeDatabase; encryption will be
-/// configured when we add the hooks setup to pubspec.yaml.
-QueryExecutor _createExecutor() {
-  // For now, use an in-memory database during development.
-  // In production, this will use a file-based encrypted database.
-  return driftDatabase(name: 'smartpos');
-}
+/// Uses `drift_flutter`'s `driftDatabase(name: 'smartpos')`, which opens a
+/// plain (unencrypted) SQLite file in the app's documents directory.
+///
+/// Encryption via sqlite3mc / SQLCipher with a device-bound key (Android
+/// Keystore / iOS Keychain) is a deferred security work item — see the
+/// project README. Do not store the database file on shared/external
+/// storage until encryption is in place.
+QueryExecutor _createExecutor() => driftDatabase(name: 'smartpos');
