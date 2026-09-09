@@ -124,6 +124,7 @@ class ManagerDashboardPage extends StatelessWidget {
       _Action('Catalog', Icons.menu_book_outlined, AppRoutes.catalog),
       _Action('Reports', Icons.bar_chart_outlined, AppRoutes.reports),
       _Action('Sync Queue', Icons.sync_outlined, AppRoutes.syncQueue),
+      _Action('Audit Trail', Icons.verified_user_outlined, AppRoutes.audit),
       _Action('Credit Notes', Icons.note_alt_outlined, AppRoutes.creditNotes),
       _Action(
         'Invoice Cancellation',

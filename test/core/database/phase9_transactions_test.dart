@@ -58,8 +58,13 @@ void main() {
     );
   }
 
-  test('schema v4 exposes all fiscal tables', () async {
-    expect(db.schemaVersion, 4);
+  Future<List<String>> tableColumns(String table) async {
+    final rows = await db.customSelect('PRAGMA table_info($table)').get();
+    return rows.map((r) => r.read<String>('name')).toList();
+  }
+
+  test('schema v5 exposes all fiscal tables and new columns', () async {
+    expect(db.schemaVersion, 5);
     final names =
         (await db
                 .customSelect(
@@ -76,6 +81,15 @@ void main() {
         'daily_reports',
       ]),
     );
+
+    final syncColumns = await tableColumns('sync_queue');
+    expect(syncColumns, contains('last_error'));
+    expect(syncColumns, contains('updated_at'));
+    expect(syncColumns, contains('last_attempt_at'));
+    expect(syncColumns, contains('synced_at'));
+
+    final auditColumns = await tableColumns('audit_logs');
+    expect(auditColumns, contains('payload'));
   });
 
   test(

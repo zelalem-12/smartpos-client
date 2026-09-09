@@ -29,6 +29,10 @@ import 'package:smartpos_client/features/receipt/presentation/cubit/receipt_cubi
 import 'package:smartpos_client/features/receipt/presentation/cubit/receipt_state.dart';
 import 'package:smartpos_client/features/settings/presentation/cubit/cashier_management_cubit.dart';
 import 'package:smartpos_client/features/settings/presentation/cubit/cashier_management_state.dart';
+import 'package:smartpos_client/features/sync_queue/presentation/cubit/sync_queue_cubit.dart';
+import 'package:smartpos_client/features/sync_queue/presentation/cubit/sync_queue_state.dart';
+import 'package:smartpos_client/features/audit/presentation/cubit/audit_cubit.dart';
+import 'package:smartpos_client/features/audit/presentation/cubit/audit_state.dart';
 
 class MockStoreConfigRepository extends Mock implements StoreConfigRepository {}
 
@@ -108,6 +112,29 @@ class MockCashierManagementCubit extends MockCubit<CashierManagementState>
   }
 }
 
+class MockSyncQueueCubit extends MockCubit<SyncQueueState>
+    implements SyncQueueCubit {
+  MockSyncQueueCubit() {
+    when(() => state).thenReturn(const SyncQueueState());
+    when(() => load()).thenAnswer((_) async {});
+    when(() => syncAll()).thenAnswer((_) async {});
+    when(() => retry(any())).thenAnswer((_) async {});
+    when(() => dismissOfflineMessage()).thenReturn(null);
+  }
+}
+
+class MockAuditCubit extends MockCubit<AuditState> implements AuditCubit {
+  MockAuditCubit() {
+    when(() => state).thenReturn(const AuditState());
+    when(() => load()).thenAnswer((_) async {});
+    when(() => refresh()).thenAnswer((_) async {});
+    when(() => exportCsv()).thenAnswer((_) async {});
+    when(() => exportJson()).thenAnswer((_) async {});
+    when(() => selectEntry(any())).thenReturn(null);
+    when(() => clearSelection()).thenReturn(null);
+  }
+}
+
 void _safeUnregister<T extends Object>() {
   if (sl.isRegistered<T>()) {
     sl.unregister<T>();
@@ -128,6 +155,8 @@ void _resetAndRegisterMocks() {
   _safeUnregister<CreditNoteCubit>();
   _safeUnregister<CancellationCubit>();
   _safeUnregister<ReportsCubit>();
+  _safeUnregister<SyncQueueCubit>();
+  _safeUnregister<AuditCubit>();
 
   final storeRepo = MockStoreConfigRepository();
   final userRepo = MockUserRepository();
@@ -153,6 +182,8 @@ void _resetAndRegisterMocks() {
   sl.registerFactory<CreditNoteCubit>(() => MockCreditNoteCubit());
   sl.registerFactory<CancellationCubit>(() => MockCancellationCubit());
   sl.registerFactory<ReportsCubit>(() => MockReportsCubit());
+  sl.registerFactory<SyncQueueCubit>(() => MockSyncQueueCubit());
+  sl.registerFactory<AuditCubit>(() => MockAuditCubit());
 }
 
 void _unregisterMocks() {
@@ -169,6 +200,8 @@ void _unregisterMocks() {
   _safeUnregister<CreditNoteCubit>();
   _safeUnregister<CancellationCubit>();
   _safeUnregister<ReportsCubit>();
+  _safeUnregister<SyncQueueCubit>();
+  _safeUnregister<AuditCubit>();
 }
 
 void main() {
@@ -216,6 +249,7 @@ void main() {
         'Catalog',
         'Reports',
         'Sync Queue',
+        'Audit Trail',
         'Credit Notes',
         'Invoice Cancellation',
         'Settings',
@@ -413,6 +447,38 @@ void main() {
         await tester.pumpAndSettle();
         expect(router.state.matchedLocation, route);
       }
+    });
+
+    testWidgets('manager can open Phase 10 sync queue and audit screens', (
+      tester,
+    ) async {
+      sl<SessionService>().setUser('m1', 'Manager', 'MANAGER');
+      final router = createRouter();
+      await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+      await tester.pumpAndSettle();
+
+      for (final route in [AppRoutes.syncQueue, AppRoutes.audit]) {
+        router.go(route);
+        await tester.pumpAndSettle();
+        expect(router.state.matchedLocation, route);
+      }
+    });
+
+    testWidgets('cashier is redirected away from sync queue and audit', (
+      tester,
+    ) async {
+      sl<SessionService>().setUser('c1', 'Chala', 'CASHIER');
+      final router = createRouter();
+      await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+      await tester.pumpAndSettle();
+
+      router.go(AppRoutes.syncQueue);
+      await tester.pumpAndSettle();
+      expect(router.state.matchedLocation, AppRoutes.cashier);
+
+      router.go(AppRoutes.audit);
+      await tester.pumpAndSettle();
+      expect(router.state.matchedLocation, AppRoutes.cashier);
     });
 
     testWidgets('system back from pushed checkout returns to POS', (

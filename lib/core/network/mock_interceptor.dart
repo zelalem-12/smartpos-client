@@ -46,6 +46,16 @@ class MockInterceptor extends Interceptor {
       );
     }
 
+    if (path.endsWith(ApiEndpoints.sync)) {
+      return handler.resolve(
+        Response(
+          requestOptions: options,
+          statusCode: 200,
+          data: {'status': 'synced'},
+        ),
+      );
+    }
+
     if (path.endsWith(ApiEndpoints.usersSync)) {
       return handler.resolve(
         Response(

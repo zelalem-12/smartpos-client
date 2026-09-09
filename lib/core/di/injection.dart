@@ -1,3 +1,4 @@
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:dio/dio.dart';
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
@@ -61,8 +62,23 @@ import '../../features/reports/domain/repositories/report_repository.dart';
 import '../../features/reports/domain/usecases/report_usecases.dart';
 import '../../features/reports/presentation/cubit/reports_cubit.dart';
 import '../../features/settings/presentation/cubit/cashier_management_cubit.dart';
+import '../../features/sync_queue/data/repositories/sync_queue_repository_impl.dart';
+import '../../features/sync_queue/domain/repositories/sync_queue_repository.dart';
+import '../../features/sync_queue/domain/usecases/get_sync_queue.dart';
+import '../../features/sync_queue/domain/usecases/retry_sync_entry.dart';
+import '../../features/sync_queue/domain/usecases/sync_all_entries.dart';
+import '../../features/sync_queue/presentation/cubit/sync_queue_cubit.dart';
+import '../../features/audit/data/repositories/audit_repository_impl.dart';
+import '../../features/audit/data/repositories/documents_directory_provider.dart';
+import '../../features/audit/domain/repositories/audit_repository.dart';
+import '../../features/audit/domain/repositories/directory_provider.dart';
+import '../../features/audit/domain/usecases/export_audit_csv.dart';
+import '../../features/audit/domain/usecases/export_audit_json.dart';
+import '../../features/audit/domain/usecases/get_audit_trail.dart';
+import '../../features/audit/presentation/cubit/audit_cubit.dart';
 import '../database/app_database.dart';
 import '../network/api_client.dart';
+import '../network/network_info.dart';
 import '../printer/mock_printer_service.dart';
 import '../printer/printer_service.dart';
 import '../printer/sunmi_printer_service.dart';
@@ -87,6 +103,12 @@ Future<void> initDependencies() async {
 
   // HTTP client — singleton (mock interceptor returns fake data)
   sl.registerLazySingleton<Dio>(() => createDio());
+
+  // Connectivity status (online / offline)
+  sl.registerLazySingleton<Connectivity>(() => Connectivity());
+  sl.registerLazySingleton<NetworkInfo>(
+    () => ConnectivityNetworkInfo(sl<Connectivity>()),
+  );
 
   // Printer — Sunmi on Android, mock elsewhere. The Sunmi service itself
   // guards against non-Sunmi devices and reports failures through the
@@ -350,6 +372,70 @@ Future<void> initDependencies() async {
       sl<GenerateXReport>(),
       sl<CloseZReport>(),
       sl<SessionService>(),
+    ),
+  );
+
+  // ─── Phase 10: Sync Queue ───────────────────────────────────────────
+
+  sl.registerLazySingleton<SyncQueueRepository>(
+    () => SyncQueueRepositoryImpl(
+      sl<AppDatabase>(),
+      sl<Dio>(),
+      sl<NetworkInfo>(),
+    ),
+  );
+
+  sl.registerLazySingleton<GetSyncQueue>(
+    () => GetSyncQueue(sl<SyncQueueRepository>()),
+  );
+  sl.registerLazySingleton<GetOldestUnsyncedAge>(
+    () => GetOldestUnsyncedAge(sl<SyncQueueRepository>()),
+  );
+  sl.registerLazySingleton<RetrySyncEntry>(
+    () => RetrySyncEntry(sl<SyncQueueRepository>()),
+  );
+  sl.registerLazySingleton<SyncAllEntries>(
+    () => SyncAllEntries(sl<SyncQueueRepository>()),
+  );
+
+  sl.registerFactory<SyncQueueCubit>(
+    () => SyncQueueCubit(
+      getSyncQueue: sl<GetSyncQueue>(),
+      getOldestUnsyncedAge: sl<GetOldestUnsyncedAge>(),
+      retrySyncEntry: sl<RetrySyncEntry>(),
+      syncAll: sl<SyncAllEntries>(),
+      connectivity: sl<Connectivity>(),
+    ),
+  );
+
+  // ─── Phase 10: Audit Trail ──────────────────────────────────────────
+
+  sl.registerLazySingleton<DirectoryProvider>(
+    () => const DocumentsDirectoryProvider(),
+  );
+
+  sl.registerLazySingleton<AuditRepository>(
+    () => AuditRepositoryImpl(sl<AppDatabase>()),
+  );
+
+  sl.registerLazySingleton<GetAuditTrail>(
+    () => GetAuditTrail(sl<AuditRepository>()),
+  );
+  sl.registerLazySingleton<VerifyAuditChain>(
+    () => VerifyAuditChain(sl<AuditRepository>()),
+  );
+  sl.registerLazySingleton<ExportAuditCsv>(
+    () => ExportAuditCsv(sl<AuditRepository>(), sl<DirectoryProvider>()),
+  );
+  sl.registerLazySingleton<ExportAuditJson>(
+    () => ExportAuditJson(sl<AuditRepository>(), sl<DirectoryProvider>()),
+  );
+
+  sl.registerFactory<AuditCubit>(
+    () => AuditCubit(
+      verifyAuditChain: sl<VerifyAuditChain>(),
+      exportCsv: sl<ExportAuditCsv>(),
+      exportJson: sl<ExportAuditJson>(),
     ),
   );
 }

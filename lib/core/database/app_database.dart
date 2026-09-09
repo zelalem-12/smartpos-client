@@ -50,7 +50,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting() : super(NativeDatabase.memory());
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -72,11 +72,68 @@ class AppDatabase extends _$AppDatabase {
         await m.createTable(cancellationRequests);
         await m.createTable(dailyReports);
       }
+      if (from < 5) {
+        // Extend sync_queue with status lifecycle fields.
+        // Extend audit_logs with the deterministic payload used for hashing.
+        await _ensurePhase10Columns();
+      }
     },
     beforeOpen: (details) async {
+      await _ensurePhase10Columns();
       await customStatement('PRAGMA foreign_keys = ON;');
     },
   );
+
+  Future<void> _ensurePhase10Columns() async {
+    // Wrap the repair in a transaction so that a partially migrated schema
+    // cannot be left behind if any single ALTER fails during startup.
+    return transaction(() async {
+      final tables = await customSelect(
+        "SELECT name FROM sqlite_master WHERE type = 'table' AND name IN ('sync_queue', 'audit_logs')",
+      ).get();
+      final tableNames = tables.map((row) => row.read<String>('name')).toSet();
+
+      if (tableNames.contains('sync_queue')) {
+        final columns = await customSelect("PRAGMA table_info('sync_queue')")
+            .get();
+        final names = columns.map((row) => row.read<String>('name')).toSet();
+        if (!names.contains('last_error')) {
+          await customStatement(
+            'ALTER TABLE sync_queue ADD COLUMN last_error TEXT NULL',
+          );
+        }
+        if (!names.contains('updated_at')) {
+          await customStatement(
+            'ALTER TABLE sync_queue ADD COLUMN updated_at INTEGER NOT NULL DEFAULT 0',
+          );
+          await customStatement(
+            'UPDATE sync_queue SET updated_at = created_at WHERE updated_at = 0',
+          );
+        }
+        if (!names.contains('last_attempt_at')) {
+          await customStatement(
+            'ALTER TABLE sync_queue ADD COLUMN last_attempt_at INTEGER NULL',
+          );
+        }
+        if (!names.contains('synced_at')) {
+          await customStatement(
+            'ALTER TABLE sync_queue ADD COLUMN synced_at INTEGER NULL',
+          );
+        }
+      }
+
+      if (tableNames.contains('audit_logs')) {
+        final columns = await customSelect("PRAGMA table_info('audit_logs')")
+            .get();
+        final names = columns.map((row) => row.read<String>('name')).toSet();
+        if (!names.contains('payload')) {
+          await customStatement(
+            'ALTER TABLE audit_logs ADD COLUMN payload TEXT NULL',
+          );
+        }
+      }
+    });
+  }
 
   // ─── Store Config DAO ───────────────────────────────────────────────
 
@@ -323,6 +380,7 @@ class AppDatabase extends _$AppDatabase {
           invoiceId: Value(invoiceId),
           userId: request.auditUserId,
           details: 'Invoice #$nextNumber created by ${request.cashierId}',
+          payload: Value(payload),
           previousHash: previousHash,
           currentHash: currentHash,
         ),
@@ -371,6 +429,77 @@ class AppDatabase extends _$AppDatabase {
     return (select(auditLogs)
           ..where((a) => a.invoiceId.equals(invoiceId))
           ..orderBy([(a) => OrderingTerm.desc(a.id)]))
+        .get();
+  }
+
+  // ─── Sync Queue DAO ─────────────────────────────────────────────────
+
+  /// List all sync queue entries, newest first by default.
+  Future<List<SyncQueueData>> getAllSyncQueue({bool newestFirst = true}) {
+    return (select(syncQueue)..orderBy([
+          (s) => OrderingTerm(
+            expression: s.createdAt,
+            mode: newestFirst ? OrderingMode.desc : OrderingMode.asc,
+          ),
+          (s) => OrderingTerm(
+            expression: s.id,
+            mode: newestFirst ? OrderingMode.desc : OrderingMode.asc,
+          ),
+        ]))
+        .get();
+  }
+
+  /// Entries that can be retried or synced (PENDING or FAILED).
+  Future<List<SyncQueueData>> getActionableSyncQueue() {
+    return (select(syncQueue)
+          ..where((s) => s.status.equals('PENDING') | s.status.equals('FAILED'))
+          ..orderBy([
+            (s) => OrderingTerm.asc(s.createdAt),
+            (s) => OrderingTerm.asc(s.id),
+          ]))
+        .get();
+  }
+
+  /// Get a single sync queue row by its local ID.
+  Future<SyncQueueData?> getSyncQueueById(int id) {
+    return (select(syncQueue)..where((s) => s.id.equals(id))).getSingleOrNull();
+  }
+
+  /// The oldest row that has not reached SYNCED status.
+  Future<SyncQueueData?> getOldestUnsynced() {
+    return (select(syncQueue)
+          ..where((s) => s.status.equals('SYNCED').not())
+          ..orderBy([(s) => OrderingTerm.asc(s.createdAt)])
+          ..limit(1))
+        .getSingleOrNull();
+  }
+
+  /// Update fields of a sync queue row by its local ID.
+  Future<int> updateSyncQueueById(int id, SyncQueueCompanion companion) {
+    return (update(syncQueue)..where((s) => s.id.equals(id))).write(companion);
+  }
+
+  /// Count entries with the given status.
+  Future<int> countSyncQueueByStatus(String status) async {
+    final count = syncQueue.id.count();
+    final row =
+        await (selectOnly(syncQueue)
+              ..where(syncQueue.status.equals(status))
+              ..addColumns([count]))
+            .getSingle();
+    return row.read(count) ?? 0;
+  }
+
+  // ─── Audit DAO ────────────────────────────────────────────────────────
+
+  /// List all audit log entries, newest first by default.
+  Future<List<AuditLog>> getAllAuditLogs({bool newestFirst = true}) {
+    return (select(auditLogs)..orderBy([
+          (a) => OrderingTerm(
+            expression: a.id,
+            mode: newestFirst ? OrderingMode.desc : OrderingMode.asc,
+          ),
+        ]))
         .get();
   }
 
@@ -503,6 +632,7 @@ class AppDatabase extends _$AppDatabase {
           invoiceId: Value(invoice.id),
           userId: request.managerId,
           details: 'Credit note #$number for invoice #${invoice.invoiceNumber}',
+          payload: Value(payload),
           previousHash: previousHash,
           currentHash: hash,
         ),
@@ -586,6 +716,7 @@ class AppDatabase extends _$AppDatabase {
           userId: request.managerId,
           details:
               'Cancellation requested for invoice #${invoice.invoiceNumber}: $reason',
+          payload: Value(payload),
           previousHash: previousHash,
           currentHash: hash,
         ),
@@ -729,6 +860,7 @@ class AppDatabase extends _$AppDatabase {
           invoiceId: Value(anchor),
           userId: managerId,
           details: 'Z report #$number closed for $day',
+          payload: Value(payload),
           previousHash: previousHash,
           currentHash: hash,
         ),
