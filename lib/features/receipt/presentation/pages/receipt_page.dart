@@ -6,6 +6,7 @@ import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/extensions/context_extensions.dart';
 import '../../../../shared/navigation/auth_route_back_handler.dart';
+import '../../../../shared/widgets/app_app_bar.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../domain/entities/receipt_data.dart';
 import '../cubit/receipt_cubit.dart';
@@ -20,14 +21,7 @@ class ReceiptPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return AuthRouteBackHandler(
       child: Scaffold(
-        appBar: AppBar(
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: AppColors.textSecondary),
-            onPressed: () => context.safePop(),
-            tooltip: 'Back',
-          ),
-          title: const Text('Receipt'),
-        ),
+        appBar: const AppAppBar(title: 'Receipt'),
         body: SafeArea(
           child: BlocConsumer<ReceiptCubit, ReceiptState>(
             listener: _handleSideEffects,

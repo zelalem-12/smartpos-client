@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/constants/tax_constants.dart';
 import '../../../../core/error/failures.dart';
 import '../../../../core/services/session_service.dart';
+import '../../../../core/utils/error_message.dart';
 import '../../../pos/domain/usecases/clear_cart.dart';
 import '../../../pos/domain/usecases/get_cart.dart';
 import '../../domain/entities/payment_method.dart';
@@ -97,7 +98,7 @@ class CheckoutCubit extends Cubit<CheckoutState> {
       emit(
         current.copyWith(
           isProcessing: false,
-          errorMessage: 'Checkout failed: $e',
+          errorMessage: sanitizeErrorMessage(e),
         ),
       );
     }

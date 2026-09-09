@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/di/injection.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/services/session_service.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/constants/app_constants.dart';
 
 /// Manager dashboard shown at [AppRoutes.manager].
 ///
@@ -134,14 +134,27 @@ class ManagerDashboardPage extends StatelessWidget {
       _Action('Settings', Icons.settings_outlined, AppRoutes.settings),
     ].where((action) => sessionService.canAccess(action.route)).toList();
 
-    return GridView.count(
-      crossAxisCount: 2,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      mainAxisSpacing: 12,
-      crossAxisSpacing: 12,
-      childAspectRatio: 1.25,
-      children: actions.map((a) => _buildActionTile(context, a)).toList(),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Adapt column count to available width:
+        //  - < 600 (mobile): 2 columns
+        //  - 600–899 (tablet): 3 columns
+        //  - >= 900 (desktop): 4 columns
+        final crossAxisCount = constraints.maxWidth >= 900
+            ? 4
+            : constraints.maxWidth >= 600
+            ? 3
+            : 2;
+        return GridView.count(
+          crossAxisCount: crossAxisCount,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          mainAxisSpacing: 12,
+          crossAxisSpacing: 12,
+          childAspectRatio: 1.25,
+          children: actions.map((a) => _buildActionTile(context, a)).toList(),
+        );
+      },
     );
   }
 

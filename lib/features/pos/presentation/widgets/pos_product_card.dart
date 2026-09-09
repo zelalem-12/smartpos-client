@@ -61,16 +61,22 @@ class PosProductCard extends StatelessWidget {
                       color: AppColors.accentDark,
                     ),
                   ),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: AppColors.accent.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(8),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      minWidth: 48,
+                      minHeight: 48,
                     ),
-                    padding: const EdgeInsets.all(6),
-                    child: const Icon(
-                      Icons.add,
-                      size: 18,
-                      color: AppColors.accentDark,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.accent.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      padding: const EdgeInsets.all(12),
+                      child: const Icon(
+                        Icons.add,
+                        size: 22,
+                        color: AppColors.accentDark,
+                      ),
                     ),
                   ),
                 ],

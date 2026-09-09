@@ -109,25 +109,44 @@ class CashierDashboardPage extends StatelessWidget {
               ),
               const SizedBox(height: 24),
               SizedBox(
-                width: 240,
+                width: double.infinity,
                 child: Card(
                   child: InkWell(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(16),
                     onTap: () => context.push(AppRoutes.pos),
                     child: Padding(
-                      padding: const EdgeInsets.all(24),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 32,
+                      ),
                       child: Column(
                         children: [
-                          const Icon(
-                            Icons.shopping_cart_outlined,
-                            color: AppColors.accent,
-                            size: 36,
+                          Container(
+                            width: 64,
+                            height: 64,
+                            decoration: BoxDecoration(
+                              color: AppColors.accent.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: const Icon(
+                              Icons.shopping_cart_outlined,
+                              color: AppColors.accentDark,
+                              size: 32,
+                            ),
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 16),
                           Text(
                             'New Sale',
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w600,
+                            style: theme.textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Tap to start a new sale',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: AppColors.textSecondary,
                             ),
                           ),
                         ],

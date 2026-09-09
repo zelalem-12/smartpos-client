@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/di/injection.dart';
-import '../../../../core/router/app_routes.dart';
-import '../../../../core/services/session_service.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../shared/extensions/context_extensions.dart';
 import '../../../../shared/navigation/auth_route_back_handler.dart';
+import '../../../../shared/widgets/app_app_bar.dart';
 import '../../domain/entities/sync_queue_entry.dart';
 import '../cubit/sync_queue_cubit.dart';
 import '../cubit/sync_queue_state.dart';
@@ -43,13 +42,9 @@ class _SyncQueueView extends StatelessWidget {
 
     return AuthRouteBackHandler(
       child: Scaffold(
-        appBar: AppBar(
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            tooltip: 'Back',
-            onPressed: () => _safePop(context),
-          ),
-          title: const Text('Sync Queue'),
+        backgroundColor: AppColors.background,
+        appBar: AppAppBar(
+          title: 'Sync Queue',
           actions: [
             IconButton(
               icon: const Icon(Icons.refresh),
@@ -61,8 +56,7 @@ class _SyncQueueView extends StatelessWidget {
         body: BlocConsumer<SyncQueueCubit, SyncQueueState>(
           listener: (context, state) {
             if (state.error != null) {
-              ScaffoldMessenger.of(context)
-                  .showSnackBar(SnackBar(content: Text(state.error!)));
+              context.showSnackBar(state.error!, isError: true);
             }
           },
           builder: (context, state) {
@@ -89,16 +83,6 @@ class _SyncQueueView extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  void _safePop(BuildContext context) {
-    final router = GoRouter.of(context);
-    if (router.canPop()) {
-      router.pop();
-    } else {
-      final home = sl<SessionService>().homeRoute ?? AppRoutes.login;
-      router.go(home);
-    }
   }
 }
 

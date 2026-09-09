@@ -7,8 +7,10 @@ import '../../../../core/router/app_routes.dart';
 import '../../../../core/services/session_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/responsive_layout.dart';
-import '../../../../shared/extensions/context_extensions.dart';
 import '../../../../shared/navigation/auth_route_back_handler.dart';
+import '../../../../shared/widgets/app_app_bar.dart';
+import '../../../../shared/widgets/empty_view.dart';
+import '../../../../shared/widgets/error_view.dart';
 import '../../../catalog/domain/entities/category_entity.dart';
 import '../../../catalog/domain/entities/product_entity.dart';
 import '../../domain/entities/cart_entity.dart';
@@ -39,21 +41,8 @@ class PosPage extends StatelessWidget {
     return AuthRouteBackHandler(
       child: Scaffold(
         backgroundColor: AppColors.background,
-        appBar: AppBar(
-          backgroundColor: AppColors.background,
-          elevation: 0,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: AppColors.textSecondary),
-            onPressed: () => context.safePop(),
-            tooltip: 'Back',
-          ),
-          title: Text(
-            'New Sale',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              color: AppColors.primary,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
+        appBar: AppAppBar(
+          title: 'New Sale',
           actions: const [_CurrentUserBadge(), _LogoutButton()],
         ),
         body: SafeArea(
@@ -168,7 +157,7 @@ class _ProductCatalogPaneState extends State<_ProductCatalogPane> {
                 return const Center(child: CircularProgressIndicator());
               }
               if (state is PosError) {
-                return _ErrorView(
+                return ErrorView(
                   message: state.message,
                   onRetry: () =>
                       context.read<PosBloc>().add(const LoadPosCatalog()),
@@ -187,8 +176,12 @@ class _ProductCatalogPaneState extends State<_ProductCatalogPane> {
 
   Widget _buildProductGrid(BuildContext context, PosLoaded state) {
     if (state.filteredProducts.isEmpty) {
-      return _EmptyCatalogView(
-        onRetry: () => context.read<PosBloc>().add(const LoadPosCatalog()),
+      return EmptyView(
+        icon: Icons.search_off_outlined,
+        message: 'No products found',
+        hint: 'Pull to refresh or tap Retry to reload the catalog.',
+        actionLabel: 'Retry',
+        onAction: () => context.read<PosBloc>().add(const LoadPosCatalog()),
       );
     }
 
@@ -267,86 +260,6 @@ class _CategoryFilter extends StatelessWidget {
             ],
           );
         },
-      ),
-    );
-  }
-}
-
-class _ErrorView extends StatelessWidget {
-  final String message;
-  final VoidCallback onRetry;
-
-  const _ErrorView({required this.message, required this.onRetry});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.error_outline, size: 48, color: AppColors.error),
-            const SizedBox(height: 12),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyMedium
-                  ?.copyWith(color: AppColors.error),
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton.icon(
-              onPressed: onRetry,
-              icon: const Icon(Icons.refresh),
-              label: const Text('Retry'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _EmptyCatalogView extends StatelessWidget {
-  final VoidCallback onRetry;
-
-  const _EmptyCatalogView({required this.onRetry});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.search_off_outlined,
-              size: 56,
-              color: AppColors.textSecondary.withValues(alpha: 0.5),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'No products found',
-              style: Theme.of(context).textTheme.bodyLarge
-                  ?.copyWith(color: AppColors.textSecondary),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Pull to refresh or tap Retry to reload the catalog.',
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppColors.textSecondary.withValues(alpha: 0.7),
-              ),
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton.icon(
-              onPressed: onRetry,
-              icon: const Icon(Icons.refresh),
-              label: const Text('Retry'),
-            ),
-          ],
-        ),
       ),
     );
   }

@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/currency_formatter.dart';
 import '../../../../shared/navigation/auth_route_back_handler.dart';
+import '../../../../shared/widgets/app_app_bar.dart';
+import '../../../../shared/widgets/app_button.dart';
+import '../../../../shared/widgets/app_text_field.dart';
+import '../../../../shared/widgets/error_view.dart';
 import '../cubit/cancellation_cubit.dart';
 
 class CancellationPage extends StatefulWidget {
@@ -22,7 +28,8 @@ class _CancellationPageState extends State<CancellationPage> {
   @override
   Widget build(BuildContext context) => AuthRouteBackHandler(
     child: Scaffold(
-      appBar: AppBar(title: const Text('Invoice Cancellation')),
+      backgroundColor: AppColors.background,
+      appBar: const AppAppBar(title: 'Invoice Cancellation'),
       body: BlocBuilder<CancellationCubit, CancellationState>(
         builder: (context, state) {
           if (state.loading) {
@@ -32,40 +39,60 @@ class _CancellationPageState extends State<CancellationPage> {
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              TextField(
-                key: const Key('cancellationInvoiceSearch'),
+              AppTextField(
+                label: 'Invoice number',
+                hint: 'Enter invoice number',
                 controller: search,
                 keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  labelText: 'Invoice number',
-                  suffixIcon: IconButton(
-                    icon: const Icon(Icons.search),
-                    onPressed: () =>
-                        context.read<CancellationCubit>().search(search.text),
-                  ),
-                ),
+                textInputAction: TextInputAction.search,
                 onSubmitted: context.read<CancellationCubit>().search,
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.search),
+                  onPressed: () =>
+                      context.read<CancellationCubit>().search(search.text),
+                ),
               ),
               if (state.error != null) ...[
                 const SizedBox(height: 12),
-                Text(
-                  state.error!,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
-                ),
-                TextButton(
-                  onPressed: () =>
+                ErrorView(
+                  message: state.error!,
+                  onRetry: () =>
                       context.read<CancellationCubit>().search(search.text),
-                  child: const Text('Retry'),
                 ),
               ],
               if (invoice != null) ...[
                 const SizedBox(height: 16),
-                Text(
-                  'Invoice #${invoice.number}',
-                  style: Theme.of(context).textTheme.titleLarge,
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Invoice #${invoice.number}',
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.w700,
+                              ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Buyer TIN: ${invoice.buyerTin ?? 'Walk-in'}',
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(color: AppColors.textSecondary),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Gross: ${CurrencyFormatter.format(invoice.grossTotal)}',
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(color: AppColors.textSecondary),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-                Text('Buyer TIN: ${invoice.buyerTin ?? 'Walk-in'}'),
-                Text('Gross: ${invoice.grossTotal.toStringAsFixed(2)} ETB'),
+                const SizedBox(height: 16),
                 DropdownButtonFormField<String>(
                   key: const Key('cancellationReason'),
                   initialValue: reason,
@@ -84,17 +111,44 @@ class _CancellationPageState extends State<CancellationPage> {
                   onChanged: (v) => setState(() => reason = v!),
                 ),
                 const SizedBox(height: 16),
-                FilledButton(
+                AppButton(
+                  label: 'Request Cancellation',
+                  icon: Icons.cancel_outlined,
                   onPressed: () =>
                       context.read<CancellationCubit>().submit(reason),
-                  child: const Text('Request Cancellation'),
                 ),
               ],
-              if (state.success)
-                const Padding(
-                  padding: EdgeInsets.only(top: 16),
-                  child: Text('Cancellation request submitted successfully'),
+              if (state.success) ...[
+                const SizedBox(height: 16),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.success.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.check_circle,
+                        color: AppColors.success,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Cancellation request submitted successfully',
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
+                                color: AppColors.success,
+                                fontWeight: FontWeight.w600,
+                              ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
+              ],
             ],
           );
         },

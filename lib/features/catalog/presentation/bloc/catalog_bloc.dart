@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/error/failures.dart';
+import '../../../../core/utils/error_message.dart';
 import '../../domain/usecases/add_product.dart';
 import '../../domain/usecases/get_categories.dart';
 import '../../domain/usecases/get_products.dart';
@@ -55,7 +56,7 @@ class CatalogBloc extends Bloc<CatalogEvent, CatalogState> {
     } on Failure catch (e) {
       emit(CatalogError(e.message));
     } catch (e) {
-      emit(CatalogError('Unexpected error: $e'));
+      emit(CatalogError(sanitizeErrorMessage(e)));
     }
   }
 
@@ -92,7 +93,7 @@ class CatalogBloc extends Bloc<CatalogEvent, CatalogState> {
     } on Failure catch (e) {
       emit(CatalogError(e.message));
     } catch (e) {
-      emit(CatalogError('Unexpected error: $e'));
+      emit(CatalogError(sanitizeErrorMessage(e)));
     }
   }
 
@@ -100,7 +101,6 @@ class CatalogBloc extends Bloc<CatalogEvent, CatalogState> {
     AddProductEvent event,
     Emitter<CatalogState> emit,
   ) async {
-    final currentState = state;
     emit(const CatalogLoading());
     try {
       await _addProduct(
@@ -117,10 +117,8 @@ class CatalogBloc extends Bloc<CatalogEvent, CatalogState> {
       add(const LoadCatalog());
     } on Failure catch (e) {
       emit(CatalogError(e.message));
-      if (currentState is CatalogLoaded) emit(currentState);
     } catch (e) {
-      emit(CatalogError('Unexpected error: $e'));
-      if (currentState is CatalogLoaded) emit(currentState);
+      emit(CatalogError(sanitizeErrorMessage(e)));
     }
   }
 
@@ -128,17 +126,14 @@ class CatalogBloc extends Bloc<CatalogEvent, CatalogState> {
     UpdateProductEvent event,
     Emitter<CatalogState> emit,
   ) async {
-    final currentState = state;
     emit(const CatalogLoading());
     try {
       await _updateProduct(event.product);
       add(const LoadCatalog());
     } on Failure catch (e) {
       emit(CatalogError(e.message));
-      if (currentState is CatalogLoaded) emit(currentState);
     } catch (e) {
-      emit(CatalogError('Unexpected error: $e'));
-      if (currentState is CatalogLoaded) emit(currentState);
+      emit(CatalogError(sanitizeErrorMessage(e)));
     }
   }
 
@@ -155,10 +150,8 @@ class CatalogBloc extends Bloc<CatalogEvent, CatalogState> {
       add(const LoadCatalog());
     } on Failure catch (e) {
       emit(CatalogError(e.message));
-      emit(currentState);
     } catch (e) {
-      emit(CatalogError('Unexpected error: $e'));
-      emit(currentState);
+      emit(CatalogError(sanitizeErrorMessage(e)));
     }
   }
 }

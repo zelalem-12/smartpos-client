@@ -4,6 +4,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/extensions/context_extensions.dart';
 import '../../../../shared/navigation/auth_route_back_handler.dart';
+import '../../../../shared/widgets/app_app_bar.dart';
+import '../../../../shared/widgets/empty_view.dart';
+import '../../../../shared/widgets/error_view.dart';
 import '../../domain/entities/product_entity.dart';
 import '../bloc/catalog_bloc.dart';
 import '../bloc/catalog_event.dart';
@@ -70,33 +73,16 @@ class _CatalogManagementPageState extends State<CatalogManagementPage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final bloc = context.read<CatalogBloc>();
 
     return AuthRouteBackHandler(
       child: Scaffold(
         backgroundColor: AppColors.background,
-        appBar: AppBar(
-          backgroundColor: AppColors.background,
-          elevation: 0,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: AppColors.textSecondary),
-            onPressed: () => context.safePop(),
-            tooltip: 'Back',
-          ),
-          title: Text(
-            'Catalog Management',
-            style: theme.textTheme.titleLarge?.copyWith(
-              color: AppColors.primary,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ),
+        appBar: const AppAppBar(title: 'Catalog Management'),
         body: BlocConsumer<CatalogBloc, CatalogState>(
           listener: (context, state) {
             if (state is CatalogError) {
-              ScaffoldMessenger.of(context)
-                  .showSnackBar(SnackBar(content: Text(state.message)));
+              context.showSnackBar(state.message, isError: true);
             }
           },
           builder: (context, state) {
@@ -105,7 +91,11 @@ class _CatalogManagementPageState extends State<CatalogManagementPage> {
             }
 
             if (state is CatalogError) {
-              return Center(child: Text(state.message));
+              return ErrorView(
+                message: state.message,
+                onRetry: () =>
+                    context.read<CatalogBloc>().add(const LoadCatalog()),
+              );
             }
 
             if (state is CatalogLoaded) {
@@ -192,7 +182,11 @@ class _CatalogManagementPageState extends State<CatalogManagementPage> {
           const SizedBox(height: 8),
           Expanded(
             child: state.filteredProducts.isEmpty
-                ? const Center(child: Text('No products found'))
+                ? const EmptyView(
+                    icon: Icons.search_off_outlined,
+                    message: 'No products found',
+                    hint: 'Try a different search or add a new product.',
+                  )
                 : ListView.separated(
                     padding: const EdgeInsets.all(16),
                     itemCount: state.filteredProducts.length,

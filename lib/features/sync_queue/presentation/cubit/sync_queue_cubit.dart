@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/utils/error_message.dart';
 import '../../domain/usecases/get_sync_queue.dart';
 import '../../domain/usecases/retry_sync_entry.dart';
 import '../../domain/usecases/sync_all_entries.dart';
@@ -53,9 +54,7 @@ class SyncQueueCubit extends Cubit<SyncQueueState> {
         ),
       );
     } catch (e) {
-      emit(
-        state.copyWith(loading: false, error: 'Failed to load sync queue: $e'),
-      );
+      emit(state.copyWith(loading: false, error: sanitizeErrorMessage(e)));
     }
   }
 
@@ -69,7 +68,7 @@ class SyncQueueCubit extends Cubit<SyncQueueState> {
       await _retrySyncEntry(id);
       await load();
     } catch (e) {
-      emit(state.copyWith(loading: false, error: 'Retry failed: $e'));
+      emit(state.copyWith(loading: false, error: sanitizeErrorMessage(e)));
       await load();
     }
   }
@@ -89,7 +88,7 @@ class SyncQueueCubit extends Cubit<SyncQueueState> {
       }
       await load();
     } catch (e) {
-      emit(state.copyWith(loading: false, error: 'Sync failed: $e'));
+      emit(state.copyWith(loading: false, error: sanitizeErrorMessage(e)));
       await load();
     }
   }

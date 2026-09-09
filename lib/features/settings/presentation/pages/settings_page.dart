@@ -9,6 +9,9 @@ import '../../../../core/services/session_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/extensions/context_extensions.dart';
 import '../../../../shared/navigation/auth_route_back_handler.dart';
+import '../../../../shared/widgets/app_app_bar.dart';
+import '../../../../shared/widgets/empty_view.dart';
+import '../../../../shared/widgets/error_view.dart';
 import '../cubit/cashier_management_cubit.dart';
 import '../cubit/cashier_management_state.dart';
 import '../widgets/create_cashier_dialog.dart';
@@ -44,22 +47,7 @@ class _SettingsView extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.background,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.textSecondary),
-          onPressed: () => context.safePop(),
-          tooltip: 'Back',
-        ),
-        title: Text(
-          'Settings',
-          style: theme.textTheme.titleLarge?.copyWith(
-            color: AppColors.primary,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ),
+      appBar: const AppAppBar(title: 'Settings'),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -102,7 +90,7 @@ class _SettingsView extends StatelessWidget {
 
                         if (state is CashierManagementError &&
                             state is! CashierManagementLoaded) {
-                          return _ErrorView(
+                          return ErrorView(
                             message: state.message,
                             onRetry: () => context
                                 .read<CashierManagementCubit>()
@@ -115,7 +103,11 @@ class _SettingsView extends StatelessWidget {
                             : <User>[];
 
                         if (users.isEmpty) {
-                          return const _EmptyView();
+                          return const EmptyView(
+                            icon: Icons.people_outline,
+                            message: 'No active users found',
+                            hint: 'Tap Create Cashier to add one.',
+                          );
                         }
 
                         return _UserList(
@@ -214,71 +206,6 @@ class _UserList extends StatelessWidget {
           ),
         );
       },
-    );
-  }
-}
-
-class _EmptyView extends StatelessWidget {
-  const _EmptyView();
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.people_outline,
-            size: 56,
-            color: AppColors.textSecondary.withValues(alpha: 0.5),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'No active users found',
-            style: Theme.of(context).textTheme.bodyLarge
-                ?.copyWith(color: AppColors.textSecondary),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Tap Create Cashier to add one.',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: AppColors.textSecondary.withValues(alpha: 0.7),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ErrorView extends StatelessWidget {
-  final String message;
-  final VoidCallback onRetry;
-
-  const _ErrorView({required this.message, required this.onRetry});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.error_outline, size: 48, color: AppColors.error),
-          const SizedBox(height: 12),
-          Text(
-            message,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyMedium
-                ?.copyWith(color: AppColors.error),
-          ),
-          const SizedBox(height: 16),
-          ElevatedButton.icon(
-            onPressed: onRetry,
-            icon: const Icon(Icons.refresh),
-            label: const Text('Retry'),
-          ),
-        ],
-      ),
     );
   }
 }

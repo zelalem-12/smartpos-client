@@ -29,6 +29,9 @@ class _ProductDialogState extends State<ProductDialog> {
   late final TextEditingController _vatController;
   late String? _selectedCategoryId;
   late bool _isActive;
+  String? _nameError;
+  String? _barcodeError;
+  String? _priceError;
 
   @override
   void initState() {
@@ -71,16 +74,36 @@ class _ProductDialogState extends State<ProductDialog> {
   }
 
   ProductEntity? _buildProduct() {
+    setState(() {
+      _nameError = null;
+      _barcodeError = null;
+      _priceError = null;
+    });
+
     final price = double.tryParse(_priceController.text.trim());
     final cost = double.tryParse(_costController.text.trim());
     final stock = double.tryParse(_stockController.text.trim());
     final vat = double.tryParse(_vatController.text.trim());
 
-    if (_selectedCategoryId == null ||
-        _nameController.text.trim().isEmpty ||
-        _barcodeController.text.trim().isEmpty ||
-        _unitController.text.trim().isEmpty ||
-        price == null) {
+    var hasError = false;
+
+    if (_nameController.text.trim().isEmpty) {
+      _nameError = 'Name is required';
+      hasError = true;
+    }
+    if (_barcodeController.text.trim().isEmpty) {
+      _barcodeError = 'Barcode is required';
+      hasError = true;
+    }
+    if (_unitController.text.trim().isEmpty) {
+      hasError = true;
+    }
+    if (price == null || price < 0) {
+      _priceError = 'Enter a valid price';
+      hasError = true;
+    }
+
+    if (_selectedCategoryId == null || hasError) {
       return null;
     }
 
@@ -89,7 +112,7 @@ class _ProductDialogState extends State<ProductDialog> {
           name: _nameController.text.trim(),
           description: _descriptionController.text.trim(),
           barcode: _barcodeController.text.trim(),
-          price: price,
+          price: price!,
           cost: cost,
           stockQuantity: stock ?? 0,
           unit: _unitController.text.trim(),
@@ -103,7 +126,7 @@ class _ProductDialogState extends State<ProductDialog> {
           name: _nameController.text.trim(),
           description: _descriptionController.text.trim(),
           barcode: _barcodeController.text.trim(),
-          price: price,
+          price: price!,
           cost: cost,
           stockQuantity: stock ?? 0,
           unit: _unitController.text.trim(),
@@ -137,6 +160,7 @@ class _ProductDialogState extends State<ProductDialog> {
             AppTextField(
               label: 'Name',
               controller: _nameController,
+              errorText: _nameError,
               textInputAction: TextInputAction.next,
             ),
             const SizedBox(height: 12),
@@ -149,12 +173,14 @@ class _ProductDialogState extends State<ProductDialog> {
             AppTextField(
               label: 'Barcode',
               controller: _barcodeController,
+              errorText: _barcodeError,
               textInputAction: TextInputAction.next,
             ),
             const SizedBox(height: 12),
             AppTextField(
               label: 'Price',
               controller: _priceController,
+              errorText: _priceError,
               keyboardType: TextInputType.number,
               inputFormatters: [
                 FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),

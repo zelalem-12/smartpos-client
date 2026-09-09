@@ -44,8 +44,28 @@ class _ManagerSetupPageState extends State<ManagerSetupPage> {
       _passwordController.text.isNotEmpty &&
       _confirmPasswordController.text.isNotEmpty;
 
+  String? get _passwordError {
+    if (_passwordController.text.isEmpty &&
+        _confirmPasswordController.text.isEmpty) {
+      return null;
+    }
+    if (_passwordController.text.isNotEmpty &&
+        _passwordController.text.length < 4) {
+      return 'Password must be at least 4 characters';
+    }
+    if (_confirmPasswordController.text.isNotEmpty &&
+        _passwordController.text != _confirmPasswordController.text) {
+      return 'Passwords do not match';
+    }
+    return null;
+  }
+
   void _submit() {
-    if (!_canSubmit) return;
+    final passwordError = _passwordError;
+    if (!_canSubmit || passwordError != null) {
+      setState(() {});
+      return;
+    }
     context.read<ManagerSetupCubit>().submit(
       username: _usernameController.text.trim(),
       fullName: _fullNameController.text.trim(),
@@ -110,6 +130,11 @@ class _ManagerSetupPageState extends State<ManagerSetupPage> {
                               controller: _passwordController,
                               enabled: !isLoading,
                               obscureText: _obscurePassword,
+                              errorText:
+                                  _passwordController.text.isNotEmpty &&
+                                      _passwordController.text.length < 4
+                                  ? 'Password must be at least 4 characters'
+                                  : null,
                               textInputAction: TextInputAction.next,
                               onChanged: (_) => setState(() {}),
                               suffixIcon: IconButton(
@@ -131,6 +156,12 @@ class _ManagerSetupPageState extends State<ManagerSetupPage> {
                               controller: _confirmPasswordController,
                               enabled: !isLoading,
                               obscureText: _obscureConfirmPassword,
+                              errorText:
+                                  _confirmPasswordController.text.isNotEmpty &&
+                                      _passwordController.text !=
+                                          _confirmPasswordController.text
+                                  ? 'Passwords do not match'
+                                  : null,
                               textInputAction: TextInputAction.done,
                               onSubmitted: (_) => _submit(),
                               onChanged: (_) => setState(() {}),
@@ -246,115 +277,92 @@ class _ManagerSetupPageState extends State<ManagerSetupPage> {
   Widget _buildSuccessView(BuildContext context, UserEntity manager) {
     final theme = Theme.of(context);
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 440),
-              child: Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(32),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 72,
-                        height: 72,
-                        decoration: const BoxDecoration(
-                          color: AppColors.success,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.check,
-                          color: Colors.white,
-                          size: 40,
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      Text(
-                        'Manager Created',
-                        style: theme.textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w700,
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 440),
+          child: Card(
+            child: Padding(
+              padding: const EdgeInsets.all(32),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 72,
+                    height: 72,
+                    decoration: const BoxDecoration(
+                      color: AppColors.success,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.check,
+                      color: Colors.white,
+                      size: 40,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    'Manager Created',
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'You can now log in with your username and password.',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 14,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.background,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.person_outline,
                           color: AppColors.primary,
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'You can now log in with your username and password.',
-                        textAlign: TextAlign.center,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 14,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.background,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.person_outline,
-                              color: AppColors.primary,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    manager.fullName,
-                                    style: theme.textTheme.bodyLarge?.copyWith(
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  Text(
-                                    '@${manager.username}',
-                                    style: theme.textTheme.bodySmall?.copyWith(
-                                      color: AppColors.textSecondary,
-                                    ),
-                                  ),
-                                ],
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                manager.fullName,
+                                style: theme.textTheme.bodyLarge?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 28),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 52,
-                        child: ElevatedButton.icon(
-                          onPressed: () => context.go(AppRoutes.login),
-                          icon: const Icon(Icons.login, size: 20),
-                          label: const Text(
-                            'Continue to Login',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.accent,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            elevation: 0,
+                              Text(
+                                '@${manager.username}',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
+                  const SizedBox(height: 28),
+                  AppButton(
+                    label: 'Continue to Login',
+                    icon: Icons.login,
+                    onPressed: () => context.go(AppRoutes.login),
+                  ),
+                ],
               ),
             ),
           ),

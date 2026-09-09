@@ -39,22 +39,30 @@ class _CreateCashierDialogState extends State<CreateCashierDialog> {
       _confirmPasswordController.text.isNotEmpty;
 
   void _submit() {
-    if (!_canSubmit) return;
-
-    final username = _usernameController.text.trim();
-    final fullName = _fullNameController.text.trim();
     final password = _passwordController.text;
     final confirmPassword = _confirmPasswordController.text;
+
+    if (!_canSubmit) {
+      setState(() {});
+      return;
+    }
+
+    if (password.length < 4) {
+      setState(() => _errorText = 'Password must be at least 4 characters');
+      return;
+    }
 
     if (password != confirmPassword) {
       setState(() => _errorText = 'Passwords do not match');
       return;
     }
 
+    setState(() => _errorText = null);
+
     Navigator.of(context).pop(
       CreateCashierResult(
-        username: username,
-        fullName: fullName,
+        username: _usernameController.text.trim(),
+        fullName: _fullNameController.text.trim(),
         password: password,
       ),
     );
@@ -92,6 +100,11 @@ class _CreateCashierDialogState extends State<CreateCashierDialog> {
               hint: 'Min. 4 characters',
               controller: _passwordController,
               obscureText: _obscurePassword,
+              errorText:
+                  _passwordController.text.isNotEmpty &&
+                      _passwordController.text.length < 4
+                  ? 'Password must be at least 4 characters'
+                  : null,
               textInputAction: TextInputAction.next,
               onChanged: (_) => setState(() {}),
               suffixIcon: IconButton(
@@ -112,6 +125,12 @@ class _CreateCashierDialogState extends State<CreateCashierDialog> {
               hint: 'Re-enter password',
               controller: _confirmPasswordController,
               obscureText: _obscureConfirmPassword,
+              errorText:
+                  _confirmPasswordController.text.isNotEmpty &&
+                      _passwordController.text !=
+                          _confirmPasswordController.text
+                  ? 'Passwords do not match'
+                  : null,
               textInputAction: TextInputAction.done,
               onSubmitted: (_) => _submit(),
               onChanged: (_) => setState(() {}),

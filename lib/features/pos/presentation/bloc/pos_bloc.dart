@@ -3,6 +3,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/error/failures.dart';
+import '../../../../core/utils/error_message.dart';
 import '../../../catalog/domain/entities/product_entity.dart';
 import '../../../catalog/domain/usecases/get_categories.dart';
 import '../../../catalog/domain/usecases/get_products.dart';
@@ -47,7 +48,7 @@ class PosBloc extends Bloc<PosEvent, PosState> {
     } on Failure catch (e) {
       emit(PosError(e.message));
     } catch (e) {
-      emit(PosError('Unexpected error: $e'));
+      emit(PosError(sanitizeErrorMessage(e)));
     }
   }
 

@@ -63,13 +63,30 @@ class CartPanel extends StatelessWidget {
             _buildTotals(context),
             Padding(
               padding: const EdgeInsets.all(12),
-              child: ElevatedButton.icon(
-                key: const ValueKey('chargeButton'),
-                onPressed: cart.isEmpty ? null : onCharge,
-                icon: const Icon(Icons.payment_outlined),
-                label: Text(
-                  'CHARGE ${CurrencyFormatter.format(cart.grossTotal)}',
-                  style: const TextStyle(fontWeight: FontWeight.w700),
+              child: SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: ElevatedButton.icon(
+                  key: const ValueKey('chargeButton'),
+                  onPressed: cart.isEmpty ? null : onCharge,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.accent,
+                    foregroundColor: Colors.white,
+                    disabledBackgroundColor: AppColors.accent.withValues(
+                      alpha: 0.5,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  icon: const Icon(Icons.payment_outlined),
+                  label: Text(
+                    'CHARGE ${CurrencyFormatter.format(cart.grossTotal)}',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -94,10 +111,13 @@ class CartPanel extends StatelessWidget {
               ),
             ),
           ),
-          TextButton.icon(
-            onPressed: cart.isEmpty ? null : onClear,
-            icon: const Icon(Icons.delete_sweep_outlined, size: 18),
-            label: const Text('Clear'),
+          SizedBox(
+            height: 48,
+            child: TextButton.icon(
+              onPressed: cart.isEmpty ? null : onClear,
+              icon: const Icon(Icons.delete_sweep_outlined, size: 20),
+              label: const Text('Clear'),
+            ),
           ),
         ],
       ),

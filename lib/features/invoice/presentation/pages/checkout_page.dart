@@ -6,8 +6,8 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/currency_formatter.dart';
-import '../../../../shared/extensions/context_extensions.dart';
 import '../../../../shared/navigation/auth_route_back_handler.dart';
+import '../../../../shared/widgets/app_app_bar.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../domain/entities/payment_method.dart';
@@ -23,20 +23,8 @@ class CheckoutPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return AuthRouteBackHandler(
       child: Scaffold(
-        appBar: AppBar(
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: AppColors.textSecondary),
-            onPressed: () => context.safePop(),
-            tooltip: 'Back',
-          ),
-          title: Text(
-            'Checkout',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              color: AppColors.primary,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ),
+        backgroundColor: AppColors.background,
+        appBar: const AppAppBar(title: 'Checkout'),
         body: BlocListener<CheckoutCubit, CheckoutState>(
           listener: (context, state) {
             if (state is CheckoutCompleted) {
@@ -58,7 +46,9 @@ class CheckoutPage extends StatelessWidget {
                   if (state is CheckoutCompleted) {
                     return const Center(child: CircularProgressIndicator());
                   }
-                  return const SizedBox.shrink();
+                  // Initial / unknown state: show a loading indicator
+                  // instead of a blank screen.
+                  return const Center(child: CircularProgressIndicator());
                 },
               ),
             ),

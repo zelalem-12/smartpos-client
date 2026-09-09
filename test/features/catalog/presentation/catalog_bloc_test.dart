@@ -126,7 +126,7 @@ void main() {
         isA<CatalogError>().having(
           (s) => s.message,
           'message',
-          contains('db error'),
+          'Something went wrong. Please try again.',
         ),
       ],
     );
@@ -232,7 +232,7 @@ void main() {
     );
 
     blocTest<CatalogBloc, CatalogState>(
-      'emits error then previous state when update fails',
+      'emits [Loading, Error] when update fails',
       seed: () => CatalogLoaded(
         categories: [category],
         products: [product],
@@ -244,11 +244,7 @@ void main() {
       },
       build: buildBloc,
       act: (bloc) => bloc.add(UpdateProductEvent(product)),
-      expect: () => [
-        isA<CatalogLoading>(),
-        isA<CatalogError>(),
-        isA<CatalogLoaded>(),
-      ],
+      expect: () => [isA<CatalogLoading>(), isA<CatalogError>()],
     );
 
     blocTest<CatalogBloc, CatalogState>(
