@@ -45,6 +45,9 @@ class _FakeSessionService implements SessionService {
   bool get isManager => true;
 
   @override
+  bool get isCashier => false;
+
+  @override
   String? get currentUserName => currentSession?.name;
 
   @override

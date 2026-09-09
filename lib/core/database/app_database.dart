@@ -4,7 +4,11 @@ import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 
 import 'create_invoice_request.dart';
+import 'phase9_requests.dart';
 import 'tables/audit_log_table.dart';
+import 'tables/cancellation_requests_table.dart';
+import 'tables/credit_notes_table.dart';
+import 'tables/daily_reports_table.dart';
 import 'tables/categories_table.dart';
 import 'tables/invoice_items_table.dart';
 import 'tables/invoices_table.dart';
@@ -32,6 +36,10 @@ part 'app_database.g.dart';
     Payments,
     SyncQueue,
     AuditLogs,
+    CreditNotes,
+    CreditNoteItems,
+    CancellationRequests,
+    DailyReports,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -42,7 +50,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting() : super(NativeDatabase.memory());
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -57,6 +65,12 @@ class AppDatabase extends _$AppDatabase {
         await m.createTable(payments);
         await m.createTable(syncQueue);
         await m.createTable(auditLogs);
+      }
+      if (from < 4) {
+        await m.createTable(creditNotes);
+        await m.createTable(creditNoteItems);
+        await m.createTable(cancellationRequests);
+        await m.createTable(dailyReports);
       }
     },
     beforeOpen: (details) async {
@@ -321,6 +335,13 @@ class AppDatabase extends _$AppDatabase {
     });
   }
 
+  /// Get a single invoice header by its local database ID.
+  Future<Invoice?> getInvoiceById(int invoiceId) {
+    return (select(
+      invoices,
+    )..where((i) => i.id.equals(invoiceId))).getSingleOrNull();
+  }
+
   /// Get the line items for a given invoice ID.
   Future<List<InvoiceItem>> getInvoiceItemsByInvoiceId(int invoiceId) {
     return (select(invoiceItems)
@@ -351,6 +372,369 @@ class AppDatabase extends _$AppDatabase {
           ..where((a) => a.invoiceId.equals(invoiceId))
           ..orderBy([(a) => OrderingTerm.desc(a.id)]))
         .get();
+  }
+
+  Future<Invoice?> getInvoiceByNumber(int number) => (select(
+    invoices,
+  )..where((i) => i.invoiceNumber.equals(number))).getSingleOrNull();
+
+  Future<double> getReturnedQuantity(int invoiceItemId) async {
+    final expression = creditNoteItems.quantity.sum();
+    final row =
+        await (selectOnly(creditNoteItems)
+              ..where(creditNoteItems.invoiceItemId.equals(invoiceItemId))
+              ..addColumns([expression]))
+            .getSingle();
+    return row.read(expression) ?? 0;
+  }
+
+  Future<CreditNote> createCreditNoteTransaction(
+    CreateCreditNoteRequest request,
+  ) {
+    return transaction(() async {
+      if (request.reason.trim().isEmpty) {
+        throw ArgumentError('A return reason is required');
+      }
+      if (request.items.isEmpty ||
+          request.items.every((e) => e.quantity <= 0)) {
+        throw ArgumentError('At least one returned quantity is required');
+      }
+      final invoice = await getInvoiceById(request.invoiceId);
+      if (invoice == null) throw StateError('Invoice not found');
+      if (invoice.status == 'CANCELLED') {
+        throw StateError('Cancelled invoices cannot be returned');
+      }
+      final originalItems = await getInvoiceItemsByInvoiceId(invoice.id);
+      final selected = <({InvoiceItem item, double quantity})>[];
+      for (final line in request.items.where((e) => e.quantity > 0)) {
+        final item = originalItems
+            .where((i) => i.id == line.invoiceItemId)
+            .firstOrNull;
+        if (item == null) {
+          throw ArgumentError('Item does not belong to invoice');
+        }
+        final returnedExpr = creditNoteItems.quantity.sum();
+        final returnedRow =
+            await (selectOnly(creditNoteItems)
+                  ..join([
+                    innerJoin(
+                      creditNotes,
+                      creditNotes.id.equalsExp(creditNoteItems.creditNoteId),
+                    ),
+                  ])
+                  ..where(creditNoteItems.invoiceItemId.equals(item.id))
+                  ..addColumns([returnedExpr]))
+                .getSingle();
+        final alreadyReturned = returnedRow.read(returnedExpr) ?? 0;
+        if (line.quantity > item.quantity - alreadyReturned + 0.000001) {
+          throw StateError('Returned quantity exceeds remaining sold quantity');
+        }
+        selected.add((item: item, quantity: line.quantity));
+      }
+      final maxExpr = creditNotes.creditNoteNumber.max();
+      final row = await (selectOnly(
+        creditNotes,
+      )..addColumns([maxExpr])).getSingle();
+      final number = (row.read(maxExpr) ?? 0) + 1;
+      double net = 0, vat = 0, gross = 0;
+      for (final line in selected) {
+        final ratio = line.quantity / line.item.quantity;
+        net += line.item.netAmount * ratio;
+        vat += line.item.vatAmount * ratio;
+        gross += line.item.grossAmount * ratio;
+      }
+      final payload = toDeterministicJson({
+        'creditNoteNumber': number,
+        'invoiceNumber': invoice.invoiceNumber,
+        'managerId': request.managerId,
+        'reason': request.reason.trim(),
+        'netTotal': net,
+        'vatTotal': vat,
+        'grossTotal': gross,
+        'items': selected
+            .map((e) => {'invoiceItemId': e.item.id, 'quantity': e.quantity})
+            .toList(),
+      });
+      final previousHash =
+          (await (select(auditLogs)
+                    ..orderBy([(a) => OrderingTerm.desc(a.id)])
+                    ..limit(1))
+                  .getSingleOrNull())
+              ?.currentHash ??
+          '';
+      final hash = HashChain.computeHash(previousHash, payload);
+      final id = await into(creditNotes).insert(
+        CreditNotesCompanion.insert(
+          creditNoteNumber: number,
+          invoiceId: invoice.id,
+          managerId: request.managerId,
+          reason: request.reason.trim(),
+          netTotal: net,
+          vatTotal: vat,
+          grossTotal: gross,
+          payload: payload,
+          previousHash: previousHash,
+          currentHash: hash,
+        ),
+      );
+      for (final line in selected) {
+        final ratio = line.quantity / line.item.quantity;
+        await into(creditNoteItems).insert(
+          CreditNoteItemsCompanion.insert(
+            creditNoteId: id,
+            invoiceItemId: line.item.id,
+            quantity: line.quantity,
+            netAmount: line.item.netAmount * ratio,
+            vatAmount: line.item.vatAmount * ratio,
+            grossAmount: line.item.grossAmount * ratio,
+          ),
+        );
+      }
+      await into(syncQueue).insert(
+        SyncQueueCompanion.insert(
+          invoiceId: invoice.id,
+          operation: 'CREATE_CREDIT_NOTE',
+          payload: payload,
+        ),
+      );
+      await into(auditLogs).insert(
+        AuditLogsCompanion.insert(
+          action: 'CREDIT_NOTE_CREATED',
+          invoiceId: Value(invoice.id),
+          userId: request.managerId,
+          details: 'Credit note #$number for invoice #${invoice.invoiceNumber}',
+          previousHash: previousHash,
+          currentHash: hash,
+        ),
+      );
+      return (select(creditNotes)..where((c) => c.id.equals(id))).getSingle();
+    });
+  }
+
+  Future<CancellationRequest> createCancellationTransaction(
+    CreateCancellationRequest request,
+  ) {
+    return transaction(() async {
+      final reason = request.reason.trim();
+      const allowed = {
+        'Duplicate',
+        'Wrong Buyer TIN',
+        'Wrong Product',
+        'Other',
+      };
+      if (reason.isEmpty || !allowed.contains(reason)) {
+        throw ArgumentError('An approved cancellation reason is required');
+      }
+      final invoice = await getInvoiceById(request.invoiceId);
+      if (invoice == null) throw StateError('Invoice not found');
+      if (invoice.status == 'CANCELLED' ||
+          invoice.status == 'PENDING_CANCELLATION') {
+        throw StateError(
+          'Invoice is already cancelled or pending cancellation',
+        );
+      }
+      if (request.now.difference(invoice.createdAt).inHours >= 48) {
+        throw StateError('Cancellation period has expired');
+      }
+      if (await (select(
+            cancellationRequests,
+          )..where((c) => c.invoiceId.equals(invoice.id))).getSingleOrNull() !=
+          null) {
+        throw StateError('Cancellation already requested');
+      }
+      final payload = toDeterministicJson({
+        'invoiceNumber': invoice.invoiceNumber,
+        'managerId': request.managerId,
+        'reason': reason,
+        'status': 'PENDING',
+      });
+      final previousHash =
+          (await (select(auditLogs)
+                    ..orderBy([(a) => OrderingTerm.desc(a.id)])
+                    ..limit(1))
+                  .getSingleOrNull())
+              ?.currentHash ??
+          '';
+      final hash = HashChain.computeHash(previousHash, payload);
+      final id = await into(cancellationRequests).insert(
+        CancellationRequestsCompanion.insert(
+          invoiceId: invoice.id,
+          managerId: request.managerId,
+          reason: reason,
+          payload: payload,
+          previousHash: previousHash,
+          currentHash: hash,
+        ),
+      );
+      await (update(invoices)..where((i) => i.id.equals(invoice.id))).write(
+        InvoicesCompanion(
+          status: const Value('PENDING_CANCELLATION'),
+          updatedAt: Value(request.now),
+        ),
+      );
+      await into(syncQueue).insert(
+        SyncQueueCompanion.insert(
+          invoiceId: invoice.id,
+          operation: 'CANCEL_INVOICE',
+          payload: payload,
+        ),
+      );
+      await into(auditLogs).insert(
+        AuditLogsCompanion.insert(
+          action: 'CANCELLATION_REQUESTED',
+          invoiceId: Value(invoice.id),
+          userId: request.managerId,
+          details:
+              'Cancellation requested for invoice #${invoice.invoiceNumber}: $reason',
+          previousHash: previousHash,
+          currentHash: hash,
+        ),
+      );
+      return (select(
+        cancellationRequests,
+      )..where((c) => c.id.equals(id))).getSingle();
+    });
+  }
+
+  Future<ReportTotals> generateXReport(DateTime date) async {
+    final start = DateTime(date.year, date.month, date.day);
+    final end = start.add(const Duration(days: 1));
+    final sales =
+        await (select(invoices)..where(
+              (i) =>
+                  i.createdAt.isBiggerOrEqualValue(start) &
+                  i.createdAt.isSmallerThanValue(end) &
+                  i.status.isNotIn(['CANCELLED']),
+            ))
+            .get();
+    final credits =
+        await (select(creditNotes)..where(
+              (c) =>
+                  c.createdAt.isBiggerOrEqualValue(start) &
+                  c.createdAt.isSmallerThanValue(end),
+            ))
+            .get();
+    double cash = 0, telebirr = 0, cbe = 0;
+    for (final sale in sales) {
+      final payment = await getPaymentByInvoiceId(sale.id);
+      if (payment?.method == 'cash') cash += payment!.amount;
+      if (payment?.method == 'telebirr') telebirr += payment!.amount;
+      if (payment?.method == 'cbeBirr') cbe += payment!.amount;
+    }
+    return ReportTotals(
+      date: start,
+      invoiceCount: sales.length,
+      netTotal: sales.fold(0, (v, e) => v + e.netTotal),
+      vatTotal: sales.fold(0, (v, e) => v + e.vatTotal),
+      grossTotal: sales.fold(0, (v, e) => v + e.grossTotal),
+      creditNetTotal: credits.fold(0, (v, e) => v + e.netTotal),
+      creditVatTotal: credits.fold(0, (v, e) => v + e.vatTotal),
+      creditGrossTotal: credits.fold(0, (v, e) => v + e.grossTotal),
+      cashTotal: cash,
+      telebirrTotal: telebirr,
+      cbeBirrTotal: cbe,
+    );
+  }
+
+  Future<DailyReport> closeZReportTransaction({
+    required DateTime date,
+    required String managerId,
+    required double cashCount,
+  }) {
+    return transaction(() async {
+      if (cashCount < 0) throw ArgumentError('Cash count cannot be negative');
+      final totals = await generateXReport(date);
+      final day =
+          '${totals.date.year.toString().padLeft(4, '0')}-${totals.date.month.toString().padLeft(2, '0')}-${totals.date.day.toString().padLeft(2, '0')}';
+      if (await (select(
+            dailyReports,
+          )..where((r) => r.reportDate.equals(day))).getSingleOrNull() !=
+          null) {
+        throw StateError('Z report already closed for this date');
+      }
+      final dayInvoices =
+          await (select(invoices)..where(
+                (i) =>
+                    i.createdAt.isBiggerOrEqualValue(totals.date) &
+                    i.createdAt.isSmallerThanValue(
+                      totals.date.add(const Duration(days: 1)),
+                    ),
+              ))
+              .get();
+      if (dayInvoices.isEmpty) {
+        throw StateError('Cannot close a day with no invoices');
+      }
+      final maxExpr = dailyReports.zNumber.max();
+      final number =
+          ((await (selectOnly(
+                dailyReports,
+              )..addColumns([maxExpr])).getSingle()).read(maxExpr) ??
+              0) +
+          1;
+      final payload = toDeterministicJson({
+        'zNumber': number,
+        'date': day,
+        'invoiceCount': totals.invoiceCount,
+        'netTotal': totals.netTotal,
+        'vatTotal': totals.vatTotal,
+        'grossTotal': totals.grossTotal,
+        'creditNetTotal': totals.creditNetTotal,
+        'creditVatTotal': totals.creditVatTotal,
+        'creditGrossTotal': totals.creditGrossTotal,
+        'cashTotal': totals.cashTotal,
+        'telebirrTotal': totals.telebirrTotal,
+        'cbeBirrTotal': totals.cbeBirrTotal,
+        'cashCount': cashCount,
+      });
+      final previousHash =
+          (await (select(auditLogs)
+                    ..orderBy([(a) => OrderingTerm.desc(a.id)])
+                    ..limit(1))
+                  .getSingleOrNull())
+              ?.currentHash ??
+          '';
+      final hash = HashChain.computeHash(previousHash, payload);
+      final id = await into(dailyReports).insert(
+        DailyReportsCompanion.insert(
+          zNumber: number,
+          reportDate: day,
+          managerId: managerId,
+          invoiceCount: totals.invoiceCount,
+          netTotal: totals.netTotal,
+          vatTotal: totals.vatTotal,
+          grossTotal: totals.grossTotal,
+          creditNetTotal: totals.creditNetTotal,
+          creditVatTotal: totals.creditVatTotal,
+          creditGrossTotal: totals.creditGrossTotal,
+          cashTotal: totals.cashTotal,
+          telebirrTotal: totals.telebirrTotal,
+          cbeBirrTotal: totals.cbeBirrTotal,
+          cashCount: cashCount,
+          payload: payload,
+          previousHash: previousHash,
+          currentHash: hash,
+        ),
+      );
+      final anchor = dayInvoices.first.id;
+      await into(syncQueue).insert(
+        SyncQueueCompanion.insert(
+          invoiceId: anchor,
+          operation: 'CLOSE_Z_REPORT',
+          payload: payload,
+        ),
+      );
+      await into(auditLogs).insert(
+        AuditLogsCompanion.insert(
+          action: 'Z_REPORT_CLOSED',
+          invoiceId: Value(anchor),
+          userId: managerId,
+          details: 'Z report #$number closed for $day',
+          previousHash: previousHash,
+          currentHash: hash,
+        ),
+      );
+      return (select(dailyReports)..where((r) => r.id.equals(id))).getSingle();
+    });
   }
 
   /// Serialises a map with sorted keys into deterministic JSON.

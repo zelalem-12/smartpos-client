@@ -11,12 +11,21 @@ import '../../features/auth/presentation/pages/manager_setup_page.dart';
 import '../../features/catalog/presentation/bloc/catalog_bloc.dart';
 import '../../features/catalog/presentation/bloc/catalog_event.dart';
 import '../../features/catalog/presentation/pages/catalog_management_page.dart';
+import '../../features/cancellation/presentation/cubit/cancellation_cubit.dart';
+import '../../features/cancellation/presentation/pages/cancellation_page.dart';
+import '../../features/credit_notes/presentation/cubit/credit_note_cubit.dart';
+import '../../features/credit_notes/presentation/pages/credit_notes_page.dart';
 import '../../features/invoice/presentation/cubit/checkout_cubit.dart';
 import '../../features/invoice/presentation/pages/checkout_page.dart';
+import '../../features/receipt/presentation/cubit/receipt_cubit.dart';
+import '../../features/receipt/presentation/pages/receipt_page.dart';
+import '../../features/reports/presentation/cubit/reports_cubit.dart';
+import '../../features/reports/presentation/pages/reports_page.dart';
 import '../../features/pos/presentation/bloc/cart_bloc.dart';
 import '../../features/pos/presentation/bloc/cart_event.dart';
 import '../../features/pos/presentation/bloc/pos_bloc.dart';
 import '../../features/pos/presentation/bloc/pos_event.dart';
+import '../../features/pos/presentation/pages/cashier_dashboard_page.dart';
 import '../../features/pos/presentation/pages/manager_dashboard_page.dart';
 import '../../features/pos/presentation/pages/pos_page.dart';
 import '../../features/settings/presentation/cubit/cashier_management_cubit.dart';
@@ -111,6 +120,10 @@ GoRouter createRouter() {
         ),
       ),
       GoRoute(
+        path: AppRoutes.cashier,
+        builder: (context, state) => const CashierDashboardPage(),
+      ),
+      GoRoute(
         path: AppRoutes.manager,
         builder: (context, state) => const ManagerDashboardPage(),
       ),
@@ -123,7 +136,15 @@ GoRouter createRouter() {
       ),
       GoRoute(
         path: AppRoutes.receipt,
-        builder: (context, state) => const _PlaceholderPage(title: 'Receipt'),
+        builder: (context, state) {
+          final invoiceId = int.tryParse(
+            state.uri.queryParameters['invoiceId'] ?? '',
+          );
+          return BlocProvider(
+            create: (_) => sl<ReceiptCubit>()..load(invoiceId),
+            child: const ReceiptPage(),
+          );
+        },
       ),
       GoRoute(
         path: AppRoutes.catalog,
@@ -134,17 +155,24 @@ GoRouter createRouter() {
       ),
       GoRoute(
         path: AppRoutes.creditNotes,
-        builder: (context, state) =>
-            const _PlaceholderPage(title: 'Credit Notes'),
+        builder: (context, state) => BlocProvider(
+          create: (_) => sl<CreditNoteCubit>(),
+          child: const CreditNotesPage(),
+        ),
       ),
       GoRoute(
         path: AppRoutes.cancellation,
-        builder: (context, state) =>
-            const _PlaceholderPage(title: 'Invoice Cancellation'),
+        builder: (context, state) => BlocProvider(
+          create: (_) => sl<CancellationCubit>(),
+          child: const CancellationPage(),
+        ),
       ),
       GoRoute(
         path: AppRoutes.reports,
-        builder: (context, state) => const _PlaceholderPage(title: 'Reports'),
+        builder: (context, state) => BlocProvider(
+          create: (_) => sl<ReportsCubit>()..load(),
+          child: const ReportsPage(),
+        ),
       ),
       GoRoute(
         path: AppRoutes.syncQueue,

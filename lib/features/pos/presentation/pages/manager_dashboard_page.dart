@@ -125,6 +125,11 @@ class ManagerDashboardPage extends StatelessWidget {
       _Action('Reports', Icons.bar_chart_outlined, AppRoutes.reports),
       _Action('Sync Queue', Icons.sync_outlined, AppRoutes.syncQueue),
       _Action('Credit Notes', Icons.note_alt_outlined, AppRoutes.creditNotes),
+      _Action(
+        'Invoice Cancellation',
+        Icons.cancel_outlined,
+        AppRoutes.cancellation,
+      ),
       _Action('Settings', Icons.settings_outlined, AppRoutes.settings),
     ].where((action) => sessionService.canAccess(action.route)).toList();
 

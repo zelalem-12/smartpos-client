@@ -31,10 +31,22 @@ void main() {
       expect(service.isManager, true);
     });
 
-    test('homeRoute is /pos for cashier', () {
+    test('homeRoute is /cashier for cashier', () {
       service.setUser('u2', 'Chala', 'CASHIER');
-      expect(service.homeRoute, AppRoutes.pos);
+      expect(service.homeRoute, AppRoutes.cashier);
       expect(service.isManager, false);
+      expect(service.isCashier, true);
+      expect(service.isCashier, true);
+    });
+
+    test('unknown role has no home or authenticated route access', () {
+      service.setUser('u3', 'Unknown', 'SUPERVISOR');
+      expect(service.homeRoute, isNull);
+      expect(service.isManager, false);
+      expect(service.isCashier, false);
+      expect(service.canAccess(AppRoutes.cashier), false);
+      expect(service.canAccess(AppRoutes.pos), false);
+      expect(service.canAccess(AppRoutes.manager), false);
     });
 
     test('manager can access all authenticated routes', () {
@@ -47,6 +59,7 @@ void main() {
 
     test('cashier can access only sales routes', () {
       service.setUser('u2', 'Chala', 'CASHIER');
+      expect(service.canAccess(AppRoutes.cashier), true);
       expect(service.canAccess(AppRoutes.pos), true);
       expect(service.canAccess(AppRoutes.checkout), true);
       expect(service.canAccess(AppRoutes.receipt), true);
@@ -58,6 +71,7 @@ void main() {
     test('manager routes are a strict superset of cashier routes', () {
       service.setUser('u1', 'Abebe', 'MANAGER');
       final managerAccess = <String, bool>{
+        AppRoutes.cashier: service.canAccess(AppRoutes.cashier),
         AppRoutes.pos: service.canAccess(AppRoutes.pos),
         AppRoutes.checkout: service.canAccess(AppRoutes.checkout),
         AppRoutes.receipt: service.canAccess(AppRoutes.receipt),
@@ -72,6 +86,7 @@ void main() {
 
       service.setUser('u2', 'Chala', 'CASHIER');
       final cashierAccess = <String, bool>{
+        AppRoutes.cashier: service.canAccess(AppRoutes.cashier),
         AppRoutes.pos: service.canAccess(AppRoutes.pos),
         AppRoutes.checkout: service.canAccess(AppRoutes.checkout),
         AppRoutes.receipt: service.canAccess(AppRoutes.receipt),
@@ -84,7 +99,7 @@ void main() {
         AppRoutes.settings: service.canAccess(AppRoutes.settings),
       };
 
-      expect(cashierAccess.values.where((v) => v).length, 3);
+      expect(cashierAccess.values.where((v) => v).length, 4);
       for (final entry in cashierAccess.entries) {
         if (entry.value) {
           expect(managerAccess[entry.key], isTrue);
@@ -166,7 +181,25 @@ void main() {
             .thenAnswer((_) async => true);
         when(() => mockUserRepo.hasManager()).thenAnswer((_) async => true);
         final result = await service.evaluateRedirect(AppRoutes.reports);
-        expect(result, AppRoutes.pos);
+        expect(result, AppRoutes.cashier);
+      });
+
+      test('enforces role-specific dashboards', () async {
+        when(() => mockStoreRepo.isDeviceActivated())
+            .thenAnswer((_) async => true);
+        when(() => mockUserRepo.hasManager()).thenAnswer((_) async => true);
+
+        service.setUser('u1', 'Abebe', 'MANAGER');
+        expect(
+          await service.evaluateRedirect(AppRoutes.cashier),
+          AppRoutes.manager,
+        );
+
+        service.setUser('u2', 'Chala', 'CASHIER');
+        expect(
+          await service.evaluateRedirect(AppRoutes.manager),
+          AppRoutes.cashier,
+        );
       });
     });
   });

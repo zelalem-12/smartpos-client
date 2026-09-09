@@ -29,6 +29,8 @@ class SessionService {
 
   bool get isManager => _currentSession?.role == 'MANAGER';
 
+  bool get isCashier => _currentSession?.role == 'CASHIER';
+
   String? get currentUserName => _currentSession?.name;
 
   String? get currentUserRole => _currentSession?.role;
@@ -49,8 +51,9 @@ class SessionService {
   ///
   /// Returns `null` when no user is logged in.
   String? get homeRoute {
-    if (!isAuthenticated) return null;
-    return isManager ? AppRoutes.manager : AppRoutes.pos;
+    if (isManager) return AppRoutes.manager;
+    if (isCashier) return AppRoutes.cashier;
+    return null;
   }
 
   /// Whether the current user is allowed to access [path].
@@ -60,8 +63,11 @@ class SessionService {
     // Manager has access to all authenticated routes.
     if (isManager) return true;
 
-    // Cashier / staff role is restricted to core sales flows.
+    // Only a recognized cashier role receives access to core sales flows.
+    if (!isCashier) return false;
+
     const cashierAllowed = {
+      AppRoutes.cashier,
       AppRoutes.pos,
       AppRoutes.checkout,
       AppRoutes.receipt,
@@ -106,7 +112,8 @@ class SessionService {
       return isAuthenticated ? homeRoute : AppRoutes.login;
     }
 
-    // Guard 4: Authenticated user on a public route -> send to home
+    // Guard 4: Authenticated user on a public route -> send to home.
+    // An unrecognized role has no authenticated home and remains denied.
     if (isAuthenticated && _publicPaths.contains(path)) {
       return homeRoute;
     }
@@ -120,9 +127,15 @@ class SessionService {
       return AppRoutes.login;
     }
 
-    // Guard 6: Authenticated but trying to access a restricted route
+    // Guard 6: Enforce role-specific dashboards even though managers may use
+    // every authenticated sales route.
+    if (isManager && path == AppRoutes.cashier) return AppRoutes.manager;
+    if (isCashier && path == AppRoutes.manager) return AppRoutes.cashier;
+
+    // Guard 7: Authenticated but trying to access a restricted route. Unknown
+    // roles have no home and are sent safely to login without gaining access.
     if (isAuthenticated && !canAccess(path)) {
-      return homeRoute;
+      return homeRoute ?? AppRoutes.login;
     }
 
     return null; // No redirect

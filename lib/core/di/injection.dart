@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
+import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 
 import '../../features/activation/data/datasources/activation_local_source.dart';
@@ -27,11 +28,24 @@ import '../../features/catalog/domain/usecases/search_products.dart';
 import '../../features/catalog/domain/usecases/toggle_product_active.dart';
 import '../../features/catalog/domain/usecases/update_product.dart';
 import '../../features/catalog/presentation/bloc/catalog_bloc.dart';
+import '../../features/cancellation/data/repositories/cancellation_repository_impl.dart';
+import '../../features/cancellation/domain/repositories/cancellation_repository.dart';
+import '../../features/cancellation/domain/usecases/cancellation_usecases.dart';
+import '../../features/cancellation/presentation/cubit/cancellation_cubit.dart';
+import '../../features/credit_notes/data/repositories/credit_note_repository_impl.dart';
+import '../../features/credit_notes/domain/repositories/credit_note_repository.dart';
+import '../../features/credit_notes/domain/usecases/credit_note_usecases.dart';
+import '../../features/credit_notes/presentation/cubit/credit_note_cubit.dart';
 import '../../features/invoice/data/repositories/invoice_repository_impl.dart';
 import '../../features/invoice/domain/repositories/invoice_repository.dart';
 import '../../features/invoice/domain/usecases/calculate_change.dart';
 import '../../features/invoice/domain/usecases/create_invoice.dart';
 import '../../features/invoice/presentation/cubit/checkout_cubit.dart';
+import '../../features/receipt/data/repositories/receipt_repository_impl.dart';
+import '../../features/receipt/domain/repositories/receipt_repository.dart';
+import '../../features/receipt/domain/usecases/generate_receipt.dart';
+import '../../features/receipt/domain/usecases/print_receipt.dart';
+import '../../features/receipt/presentation/cubit/receipt_cubit.dart';
 import '../../features/pos/data/repositories/cart_repository_impl.dart';
 import '../../features/pos/domain/repositories/cart_repository.dart';
 import '../../features/pos/domain/usecases/add_item_to_cart.dart';
@@ -42,11 +56,16 @@ import '../../features/pos/domain/usecases/remove_item_from_cart.dart';
 import '../../features/pos/domain/usecases/update_cart_item_quantity.dart';
 import '../../features/pos/presentation/bloc/cart_bloc.dart';
 import '../../features/pos/presentation/bloc/pos_bloc.dart';
+import '../../features/reports/data/repositories/report_repository_impl.dart';
+import '../../features/reports/domain/repositories/report_repository.dart';
+import '../../features/reports/domain/usecases/report_usecases.dart';
+import '../../features/reports/presentation/cubit/reports_cubit.dart';
 import '../../features/settings/presentation/cubit/cashier_management_cubit.dart';
 import '../database/app_database.dart';
 import '../network/api_client.dart';
 import '../printer/mock_printer_service.dart';
 import '../printer/printer_service.dart';
+import '../printer/sunmi_printer_service.dart';
 import '../repositories/store_config_repository.dart';
 import '../repositories/store_config_repository_impl.dart';
 import '../repositories/user_repository.dart';
@@ -69,8 +88,14 @@ Future<void> initDependencies() async {
   // HTTP client — singleton (mock interceptor returns fake data)
   sl.registerLazySingleton<Dio>(() => createDio());
 
-  // Printer — singleton (mock for emulator, swap for SunmiPrinterService on real device)
-  sl.registerLazySingleton<PrinterService>(() => MockPrinterService());
+  // Printer — Sunmi on Android, mock elsewhere. The Sunmi service itself
+  // guards against non-Sunmi devices and reports failures through the
+  // [PrinterService] status/init errors.
+  sl.registerLazySingleton<PrinterService>(
+    () => defaultTargetPlatform == TargetPlatform.android
+        ? SunmiPrinterService()
+        : MockPrinterService(),
+  );
 
   // ─── Repositories ──────────────────────────────────────────────────
 
@@ -247,6 +272,84 @@ Future<void> initDependencies() async {
       createInvoice: sl<CreateInvoice>(),
       clearCart: sl<ClearCart>(),
       session: sl<SessionService>(),
+    ),
+  );
+
+  // ─── Phase 8: Receipt Preview / Printing ─────────────────────────────
+
+  sl.registerLazySingleton<ReceiptRepository>(
+    () => ReceiptRepositoryImpl(
+      sl<InvoiceRepository>(),
+      sl<StoreConfigRepository>(),
+      sl<UserRepository>(),
+    ),
+  );
+
+  sl.registerLazySingleton<GenerateReceipt>(
+    () => GenerateReceipt(sl<ReceiptRepository>()),
+  );
+
+  sl.registerLazySingleton<PrintReceipt>(
+    () => PrintReceipt(sl<PrinterService>()),
+  );
+
+  sl.registerFactory<ReceiptCubit>(
+    () => ReceiptCubit(
+      generateReceipt: sl<GenerateReceipt>(),
+      printReceipt: sl<PrintReceipt>(),
+      clearCart: sl<ClearCart>(),
+    ),
+  );
+
+  // ─── Phase 9: Fiscal Adjustments and Daily Reports ──────────────────
+  sl.registerLazySingleton<CreditNoteRepository>(
+    () => CreditNoteRepositoryImpl(sl<AppDatabase>()),
+  );
+  sl.registerLazySingleton<FindReturnInvoice>(
+    () => FindReturnInvoice(sl<CreditNoteRepository>()),
+  );
+  sl.registerLazySingleton<CreateCreditNote>(
+    () => CreateCreditNote(sl<CreditNoteRepository>()),
+  );
+  sl.registerFactory<CreditNoteCubit>(
+    () => CreditNoteCubit(
+      sl<FindReturnInvoice>(),
+      sl<CreateCreditNote>(),
+      sl<SessionService>(),
+    ),
+  );
+
+  sl.registerLazySingleton<CancellationRepository>(
+    () => CancellationRepositoryImpl(sl<AppDatabase>()),
+  );
+  sl.registerLazySingleton<FindCancellationInvoice>(
+    () => FindCancellationInvoice(sl<CancellationRepository>()),
+  );
+  sl.registerLazySingleton<RequestCancellation>(
+    () => RequestCancellation(sl<CancellationRepository>()),
+  );
+  sl.registerFactory<CancellationCubit>(
+    () => CancellationCubit(
+      sl<FindCancellationInvoice>(),
+      sl<RequestCancellation>(),
+      sl<SessionService>(),
+    ),
+  );
+
+  sl.registerLazySingleton<ReportRepository>(
+    () => ReportRepositoryImpl(sl<AppDatabase>()),
+  );
+  sl.registerLazySingleton<GenerateXReport>(
+    () => GenerateXReport(sl<ReportRepository>()),
+  );
+  sl.registerLazySingleton<CloseZReport>(
+    () => CloseZReport(sl<ReportRepository>()),
+  );
+  sl.registerFactory<ReportsCubit>(
+    () => ReportsCubit(
+      sl<GenerateXReport>(),
+      sl<CloseZReport>(),
+      sl<SessionService>(),
     ),
   );
 }

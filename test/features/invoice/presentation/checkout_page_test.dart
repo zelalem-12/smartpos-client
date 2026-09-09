@@ -118,7 +118,7 @@ void main() {
       () => session.currentSession,
     ).thenReturn(const Session(id: 'csh-001', name: 'Selam', role: 'CASHIER'));
     when(() => session.isAuthenticated).thenReturn(true);
-    when(() => session.homeRoute).thenReturn(AppRoutes.pos);
+    when(() => session.homeRoute).thenReturn(AppRoutes.cashier);
     when(() => clearCart()).thenAnswer((_) async => const CartEntity());
 
     cubit = CheckoutCubit(
@@ -140,6 +140,10 @@ void main() {
     router = GoRouter(
       initialLocation: AppRoutes.checkout,
       routes: [
+        GoRoute(
+          path: AppRoutes.cashier,
+          builder: (context, state) => const Scaffold(body: Text('Cashier')),
+        ),
         GoRoute(
           path: AppRoutes.pos,
           builder: (context, state) => const Scaffold(body: Text('POS')),
@@ -265,7 +269,7 @@ void main() {
       await tester.tap(find.byIcon(Icons.arrow_back));
       await tester.pumpAndSettle();
 
-      expect(router.state.matchedLocation, AppRoutes.pos);
+      expect(router.state.matchedLocation, AppRoutes.cashier);
     });
 
     testWidgets('buyer TIN field retains focus across multiple digits', (

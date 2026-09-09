@@ -6,6 +6,7 @@ class AppRoutes {
   static const String managerSetup = '/manager-setup';
   static const String login = '/login';
   static const String pos = '/pos';
+  static const String cashier = '/cashier';
   static const String manager = '/manager';
   static const String checkout = '/checkout';
   static const String receipt = '/receipt';

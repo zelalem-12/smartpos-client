@@ -16,4 +16,8 @@ abstract class InvoiceRepository {
     double? cashTendered,
     String? buyerTin,
   });
+
+  /// Retrieves a persisted invoice by its local database [id], including
+  /// line items and the payment record.
+  Future<InvoiceEntity> getInvoiceById(int id);
 }

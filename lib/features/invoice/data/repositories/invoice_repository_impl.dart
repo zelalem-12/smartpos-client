@@ -1,5 +1,6 @@
 import '../../../../core/database/app_database.dart';
 import '../../../../core/database/create_invoice_request.dart';
+import '../../../../core/error/failures.dart';
 import '../../../../core/utils/vat_calculator.dart';
 import '../../../pos/domain/entities/cart_entity.dart';
 import '../../domain/entities/invoice_entity.dart';
@@ -59,6 +60,20 @@ class InvoiceRepositoryImpl implements InvoiceRepository {
       items: invoiceItems,
       payment: payment!,
     );
+  }
+
+  @override
+  Future<InvoiceEntity> getInvoiceById(int id) async {
+    final invoice = await _db.getInvoiceById(id);
+    if (invoice == null) {
+      throw NotFoundFailure('Invoice #$id not found');
+    }
+    final items = await _db.getInvoiceItemsByInvoiceId(id);
+    final payment = await _db.getPaymentByInvoiceId(id);
+    if (payment == null) {
+      throw const NotFoundFailure('Payment record not found');
+    }
+    return _mapInvoice(invoice: invoice, items: items, payment: payment);
   }
 
   List<CreateInvoiceItemDbRequest> _buildItems(CartEntity cart) {
