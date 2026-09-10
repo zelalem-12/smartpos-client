@@ -9,6 +9,7 @@ import '../../../../core/services/session_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_text_field.dart';
+import '../../../../shared/widgets/status_banner.dart';
 import '../cubit/login_cubit.dart';
 import '../cubit/login_state.dart';
 
@@ -86,7 +87,8 @@ class _LoginPageState extends State<LoginPage> {
                             children: [
                               AppTextField(
                                 key: const ValueKey('usernameField'),
-                                hint: 'username',
+                                label: 'Username',
+                                hint: 'Enter your username',
                                 controller: _usernameController,
                                 enabled: !isLoading,
                                 textInputAction: TextInputAction.next,
@@ -95,7 +97,8 @@ class _LoginPageState extends State<LoginPage> {
                               const SizedBox(height: 20),
                               AppTextField(
                                 key: const ValueKey('passwordField'),
-                                hint: 'password',
+                                label: 'Password',
+                                hint: 'Enter your password',
                                 controller: _passwordController,
                                 enabled: !isLoading,
                                 obscureText: _obscurePassword,
@@ -125,7 +128,10 @@ class _LoginPageState extends State<LoginPage> {
                               ),
                               if (errorText != null) ...[
                                 const SizedBox(height: 16),
-                                _buildErrorText(context, errorText),
+                                StatusBanner(
+                                  message: errorText,
+                                  type: StatusBannerType.error,
+                                ),
                               ],
                             ],
                           ),
@@ -170,30 +176,6 @@ class _LoginPageState extends State<LoginPage> {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildErrorText(BuildContext context, String message) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.error.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.error_outline, color: AppColors.error, size: 18),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              message,
-              style: Theme.of(context).textTheme.bodyMedium
-                  ?.copyWith(color: AppColors.error),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

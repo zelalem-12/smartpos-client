@@ -7,6 +7,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/extensions/context_extensions.dart';
 import '../../../../shared/navigation/auth_route_back_handler.dart';
 import '../../../../shared/widgets/app_app_bar.dart';
+import '../../../../shared/widgets/empty_view.dart';
 import '../../domain/entities/audit_log_entry.dart';
 import '../cubit/audit_cubit.dart';
 import '../cubit/audit_state.dart';
@@ -36,8 +37,6 @@ class _AuditView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return AuthRouteBackHandler(
       child: Scaffold(
         backgroundColor: AppColors.background,
@@ -74,7 +73,7 @@ class _AuditView extends StatelessWidget {
                   _ExportBar(state: state),
                   Expanded(
                     child: state.entries.isEmpty
-                        ? _EmptyTrail(theme: theme)
+                        ? const _EmptyTrail()
                         : _AuditList(entries: state.entries),
                   ),
                 ],
@@ -177,13 +176,14 @@ class _ExportBar extends StatelessWidget {
 }
 
 class _EmptyTrail extends StatelessWidget {
-  final ThemeData theme;
-  const _EmptyTrail({required this.theme});
+  const _EmptyTrail();
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Text('No audit records found.', style: theme.textTheme.bodyLarge),
+    return const EmptyView(
+      icon: Icons.history_outlined,
+      message: 'No audit records found',
+      hint: 'Operations will appear here as they are logged.',
     );
   }
 }

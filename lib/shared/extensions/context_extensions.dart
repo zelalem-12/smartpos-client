@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/di/injection.dart';
 import '../../core/router/app_routes.dart';
 import '../../core/services/session_service.dart';
+import '../../core/theme/app_colors.dart';
 
 /// Convenient extensions on BuildContext.
 extension ContextExtensions on BuildContext {
@@ -15,7 +16,7 @@ extension ContextExtensions on BuildContext {
     ScaffoldMessenger.of(this).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: isError ? Colors.red.shade700 : Colors.green.shade700,
+        backgroundColor: isError ? AppColors.error : AppColors.success,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),

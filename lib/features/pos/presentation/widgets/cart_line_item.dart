@@ -96,13 +96,15 @@ class _QuantityButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: AppColors.background,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(10),
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(10),
         onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.all(6),
-          child: Icon(icon, size: 18, color: AppColors.primary),
+        child: SizedBox(
+          width: 44,
+          height: 44,
+          child: Icon(icon, size: 20, color: AppColors.primary),
         ),
       ),
     );

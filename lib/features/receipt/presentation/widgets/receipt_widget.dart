@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../domain/entities/receipt_data.dart';
@@ -31,12 +32,12 @@ class ReceiptWidget extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                if (isDuplicate) _duplicateBanner(),
+                if (isDuplicate) _duplicateBanner(context),
                 _buildHeader(context),
                 const Divider(height: 24),
                 _buildInvoiceInfo(context),
                 const SizedBox(height: 12),
-                ..._buildItems(),
+                ..._buildItems(context),
                 const Divider(height: 24),
                 _buildSummary(context),
                 if (receipt.buyerTin != null) _buildBuyerTin(),
@@ -52,7 +53,7 @@ class ReceiptWidget extends StatelessWidget {
     );
   }
 
-  Widget _duplicateBanner() {
+  Widget _duplicateBanner(BuildContext context) {
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: 12),
@@ -61,13 +62,13 @@ class ReceiptWidget extends StatelessWidget {
         color: AppColors.error.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(4),
       ),
-      child: const Text(
-        '*** DUPLICATE COPY / ድጋሚ የታተመ ***',
+      child: Text(
+        AppConstants.duplicateWatermark,
         textAlign: TextAlign.center,
         style: TextStyle(
           color: AppColors.error,
           fontWeight: FontWeight.bold,
-          fontSize: 14,
+          fontSize: Theme.of(context).textTheme.bodySmall?.fontSize ?? 14,
         ),
       ),
     );
@@ -142,7 +143,8 @@ class ReceiptWidget extends StatelessWidget {
     );
   }
 
-  List<Widget> _buildItems() {
+  List<Widget> _buildItems(BuildContext context) {
+    final theme = Theme.of(context);
     return receipt.items.map((item) {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 4),
@@ -155,7 +157,9 @@ class ReceiptWidget extends StatelessWidget {
                 Expanded(
                   child: Text(
                     item.name,
-                    style: const TextStyle(fontWeight: FontWeight.w500),
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
                 Text(CurrencyFormatter.format(item.grossAmount)),
@@ -165,12 +169,12 @@ class ReceiptWidget extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  '${item.quantity} x ${CurrencyFormatter.formatNumber(item.unitPrice)}',
-                  style: const TextStyle(fontSize: 12),
+                  '${item.quantity} × ${CurrencyFormatter.formatNumber(item.unitPrice)}',
+                  style: theme.textTheme.bodySmall,
                 ),
                 Text(
                   'VAT ${(item.vatRate * 100).toStringAsFixed(0)}%',
-                  style: const TextStyle(fontSize: 12),
+                  style: theme.textTheme.bodySmall,
                 ),
               ],
             ),
@@ -184,40 +188,35 @@ class ReceiptWidget extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _summaryRow('Net total', receipt.netTotal),
-        _summaryRow('VAT (15%)', receipt.vatTotal),
-        _summaryRow('Grand total', receipt.grossTotal, isBold: true),
-        _summaryRow('Payment', receipt.paymentMethod, isText: true),
+        _summaryRow(context, 'Net total', receipt.netTotal),
+        _summaryRow(context, AppConstants.vatLabel, receipt.vatTotal),
+        _summaryRow(context, 'Grand total', receipt.grossTotal, isBold: true),
+        _summaryRow(context, 'Payment', receipt.paymentMethod, isText: true),
       ],
     );
   }
 
   Widget _summaryRow(
+    BuildContext context,
     String label,
     dynamic value, {
     bool isBold = false,
     bool isText = false,
   }) {
+    final theme = Theme.of(context);
     final display = isText
         ? value as String
         : CurrencyFormatter.format(value as double);
+    final style = isBold
+        ? theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold)
+        : theme.textTheme.bodyMedium;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-            ),
-          ),
-          Text(
-            display,
-            style: TextStyle(
-              fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-            ),
-          ),
+          Text(label, style: style),
+          Text(display, style: style),
         ],
       ),
     );

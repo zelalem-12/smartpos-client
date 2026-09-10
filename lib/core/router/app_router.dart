@@ -34,6 +34,7 @@ import '../../features/audit/presentation/pages/audit_page.dart';
 import '../di/injection.dart';
 import '../services/session_service.dart';
 import 'app_routes.dart';
+import '../../shared/widgets/app_nav_shell.dart';
 
 /// Creates the GoRouter with redirect guards.
 ///
@@ -49,6 +50,7 @@ GoRouter createRouter() {
     redirect: (context, state) =>
         session.evaluateRedirect(state.matchedLocation),
     routes: [
+      // --- Public / onboarding routes (no shell) ---
       GoRoute(
         path: AppRoutes.activation,
         builder: (context, state) => BlocProvider(
@@ -70,6 +72,70 @@ GoRouter createRouter() {
           child: const LoginPage(),
         ),
       ),
+
+      // --- Cashier dashboard (no shell — single action screen) ---
+      GoRoute(
+        path: AppRoutes.cashier,
+        builder: (context, state) => const CashierDashboardPage(),
+      ),
+
+      // --- Manager shell with bottom nav / rail ---
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) {
+          // Only managers see the nav shell. Cashiers are redirected by
+          // the guard and never reach this builder.
+          return AppNavShell(navigationShell: navigationShell);
+        },
+        branches: [
+          // Branch 0: Dashboard / New Sale
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppRoutes.manager,
+                builder: (context, state) => const ManagerDashboardPage(),
+              ),
+            ],
+          ),
+          // Branch 1: Catalog
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppRoutes.catalog,
+                builder: (context, state) => BlocProvider(
+                  create: (_) => sl<CatalogBloc>()..add(const LoadCatalog()),
+                  child: const CatalogManagementPage(),
+                ),
+              ),
+            ],
+          ),
+          // Branch 2: Reports
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppRoutes.reports,
+                builder: (context, state) => BlocProvider(
+                  create: (_) => sl<ReportsCubit>()..load(),
+                  child: const ReportsPage(),
+                ),
+              ),
+            ],
+          ),
+          // Branch 3: Settings
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppRoutes.settings,
+                builder: (context, state) => BlocProvider(
+                  create: (_) => sl<CashierManagementCubit>()..loadUsers(),
+                  child: const SettingsPage(),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+
+      // --- Full-screen routes pushed on top of the shell ---
       GoRoute(
         path: AppRoutes.pos,
         builder: (context, state) => MultiBlocProvider(
@@ -81,14 +147,6 @@ GoRouter createRouter() {
           ],
           child: const PosPage(),
         ),
-      ),
-      GoRoute(
-        path: AppRoutes.cashier,
-        builder: (context, state) => const CashierDashboardPage(),
-      ),
-      GoRoute(
-        path: AppRoutes.manager,
-        builder: (context, state) => const ManagerDashboardPage(),
       ),
       GoRoute(
         path: AppRoutes.checkout,
@@ -110,13 +168,6 @@ GoRouter createRouter() {
         },
       ),
       GoRoute(
-        path: AppRoutes.catalog,
-        builder: (context, state) => BlocProvider(
-          create: (_) => sl<CatalogBloc>()..add(const LoadCatalog()),
-          child: const CatalogManagementPage(),
-        ),
-      ),
-      GoRoute(
         path: AppRoutes.creditNotes,
         builder: (context, state) => BlocProvider(
           create: (_) => sl<CreditNoteCubit>(),
@@ -131,26 +182,12 @@ GoRouter createRouter() {
         ),
       ),
       GoRoute(
-        path: AppRoutes.reports,
-        builder: (context, state) => BlocProvider(
-          create: (_) => sl<ReportsCubit>()..load(),
-          child: const ReportsPage(),
-        ),
-      ),
-      GoRoute(
         path: AppRoutes.syncQueue,
         builder: (context, state) => const SyncQueuePage(),
       ),
       GoRoute(
         path: AppRoutes.audit,
         builder: (context, state) => const AuditPage(),
-      ),
-      GoRoute(
-        path: AppRoutes.settings,
-        builder: (context, state) => BlocProvider(
-          create: (_) => sl<CashierManagementCubit>()..loadUsers(),
-          child: const SettingsPage(),
-        ),
       ),
     ],
   );

@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/currency_formatter.dart';
 import '../../../../shared/extensions/context_extensions.dart';
 import '../../../../shared/navigation/auth_route_back_handler.dart';
 import '../../../../shared/widgets/app_app_bar.dart';
+import '../../../../shared/widgets/app_choice_chip.dart';
+import '../../../../shared/widgets/app_text_field.dart';
 import '../../../../shared/widgets/empty_view.dart';
 import '../../../../shared/widgets/error_view.dart';
 import '../../domain/entities/product_entity.dart';
@@ -129,22 +132,20 @@ class _CatalogManagementPageState extends State<CatalogManagementPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                TextField(
+                AppTextField(
                   controller: _searchController,
+                  hint: 'Search by name or barcode',
+                  prefixIcon: const Icon(Icons.search),
                   onChanged: (_) => _onSearchChanged(bloc),
-                  decoration: const InputDecoration(
-                    prefixIcon: Icon(Icons.search),
-                    hintText: 'Search by name or barcode',
-                  ),
                 ),
                 const SizedBox(height: 12),
                 SizedBox(
-                  height: 40,
+                  height: 48,
                   child: ListView(
                     scrollDirection: Axis.horizontal,
                     children: [
-                      ChoiceChip(
-                        label: const Text('All'),
+                      AppChoiceChip(
+                        label: 'All',
                         selected: state.selectedCategoryId == null,
                         onSelected: (_) => _onCategorySelected(bloc, null),
                       ),
@@ -152,8 +153,8 @@ class _CatalogManagementPageState extends State<CatalogManagementPage> {
                       ...state.categories.map((category) {
                         return Padding(
                           padding: const EdgeInsets.only(right: 8),
-                          child: ChoiceChip(
-                            label: Text(category.name),
+                          child: AppChoiceChip(
+                            label: category.name,
                             selected: state.selectedCategoryId == category.id,
                             onSelected: (_) =>
                                 _onCategorySelected(bloc, category.id),
@@ -246,7 +247,7 @@ class _ProductCard extends StatelessWidget {
             Text('$categoryName · ${product.barcode}'),
             const SizedBox(height: 4),
             Text(
-              '${product.priceLabel} ETB · Stock: ${product.stockQuantity.toStringAsFixed(2)} ${product.unit}',
+              '${CurrencyFormatter.format(product.price)} · Stock: ${product.stockQuantity.toStringAsFixed(2)} ${product.unit}',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: AppColors.textSecondary,
               ),
@@ -266,11 +267,7 @@ class _ProductCard extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            Switch(
-              value: product.isActive,
-              onChanged: (_) => onToggleActive(),
-              activeThumbColor: AppColors.accent,
-            ),
+            Switch(value: product.isActive, onChanged: (_) => onToggleActive()),
             IconButton(
               icon: const Icon(Icons.edit, color: AppColors.textSecondary),
               onPressed: onEdit,

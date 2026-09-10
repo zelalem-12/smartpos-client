@@ -36,8 +36,8 @@ void main() {
 
       expect(find.text(AppConstants.appName), findsOneWidget);
       expect(find.text(AppConstants.appTagline), findsOneWidget);
-      expect(find.text('username'), findsOneWidget);
-      expect(find.text('password'), findsOneWidget);
+      expect(find.text('Username'), findsOneWidget);
+      expect(find.text('Password'), findsOneWidget);
       expect(find.text('Log In'), findsOneWidget);
     });
 

@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:intl/intl.dart';
 
 import '../../features/receipt/domain/entities/receipt_data.dart';
+import '../constants/app_constants.dart';
 import '../error/failures.dart';
 import '../utils/currency_formatter.dart';
 import 'printer_service.dart';
@@ -73,7 +74,9 @@ class ReceiptPrinter {
 
     lines.add(const PrintLine.center('--------------------------------'));
     lines.add(_twoColumn('Net total:', _formatAmount(receipt.netTotal)));
-    lines.add(_twoColumn('VAT (15%):', _formatAmount(receipt.vatTotal)));
+    lines.add(
+      _twoColumn('${AppConstants.vatLabel}:', _formatAmount(receipt.vatTotal)),
+    );
     lines.add(
       _twoColumn('Gross total:', _formatAmount(receipt.grossTotal), bold: true),
     );

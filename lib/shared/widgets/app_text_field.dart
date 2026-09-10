@@ -16,6 +16,7 @@ class AppTextField extends StatelessWidget {
   final bool readOnly;
   final bool enabled;
   final Widget? suffixIcon;
+  final Widget? prefixIcon;
   final TextInputAction? textInputAction;
 
   const AppTextField({
@@ -33,6 +34,7 @@ class AppTextField extends StatelessWidget {
     this.readOnly = false,
     this.enabled = true,
     this.suffixIcon,
+    this.prefixIcon,
     this.textInputAction,
   });
 
@@ -65,6 +67,7 @@ class AppTextField extends StatelessWidget {
             hintText: hint,
             errorText: errorText,
             suffixIcon: suffixIcon,
+            prefixIcon: prefixIcon,
             counterText: '',
           ),
         ),

@@ -9,6 +9,8 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/responsive_layout.dart';
 import '../../../../shared/navigation/auth_route_back_handler.dart';
 import '../../../../shared/widgets/app_app_bar.dart';
+import '../../../../shared/widgets/app_choice_chip.dart';
+import '../../../../shared/widgets/app_text_field.dart';
 import '../../../../shared/widgets/empty_view.dart';
 import '../../../../shared/widgets/error_view.dart';
 import '../../../catalog/domain/entities/category_entity.dart';
@@ -136,14 +138,12 @@ class _ProductCatalogPaneState extends State<_ProductCatalogPane> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              TextField(
+              AppTextField(
                 key: const ValueKey('posSearchField'),
+                hint: 'Search products',
                 controller: _searchController,
+                prefixIcon: const Icon(Icons.search),
                 onChanged: _onSearchChanged,
-                decoration: const InputDecoration(
-                  prefixIcon: Icon(Icons.search),
-                  hintText: 'Search products',
-                ),
               ),
               const SizedBox(height: 12),
               _CategoryFilter(onSelected: _onCategorySelected),
@@ -241,8 +241,8 @@ class _CategoryFilter extends StatelessWidget {
           return ListView(
             scrollDirection: Axis.horizontal,
             children: [
-              ChoiceChip(
-                label: const Text('All'),
+              AppChoiceChip(
+                label: 'All',
                 selected: selectedId == null,
                 onSelected: (_) => onSelected(null),
               ),
@@ -250,8 +250,8 @@ class _CategoryFilter extends StatelessWidget {
               ...categories.map((category) {
                 return Padding(
                   padding: const EdgeInsets.only(right: 8),
-                  child: ChoiceChip(
-                    label: Text(category.name),
+                  child: AppChoiceChip(
+                    label: category.name,
                     selected: selectedId == category.id,
                     onSelected: (_) => onSelected(category.id),
                   ),

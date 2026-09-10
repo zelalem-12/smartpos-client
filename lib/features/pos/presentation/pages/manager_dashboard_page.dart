@@ -6,6 +6,7 @@ import '../../../../core/di/injection.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/services/session_service.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../shared/widgets/app_app_bar.dart';
 
 /// Manager dashboard shown at [AppRoutes.manager].
 ///
@@ -21,16 +22,8 @@ class ManagerDashboardPage extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.background,
-        elevation: 0,
-        title: Text(
-          AppConstants.appName,
-          style: theme.textTheme.titleLarge?.copyWith(
-            color: AppColors.primary,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
+      appBar: AppAppBar(
+        title: AppConstants.appName,
         actions: [
           if (session != null)
             Padding(
@@ -46,6 +39,7 @@ class ManagerDashboardPage extends StatelessWidget {
             ),
           IconButton(
             icon: const Icon(Icons.logout, color: AppColors.textSecondary),
+            tooltip: 'Log out',
             onPressed: () {
               sl<SessionService>().clear();
               context.go(AppRoutes.login);
@@ -119,10 +113,10 @@ class ManagerDashboardPage extends StatelessWidget {
 
   Widget _buildActionGrid(BuildContext context) {
     final sessionService = sl<SessionService>();
+    // Primary sections (Sale, Catalog, Reports, Settings) are in the nav
+    // shell. The grid only shows secondary/management actions.
     final actions = [
       _Action('New Sale', Icons.shopping_cart_outlined, AppRoutes.pos),
-      _Action('Catalog', Icons.menu_book_outlined, AppRoutes.catalog),
-      _Action('Reports', Icons.bar_chart_outlined, AppRoutes.reports),
       _Action('Sync Queue', Icons.sync_outlined, AppRoutes.syncQueue),
       _Action('Audit Trail', Icons.verified_user_outlined, AppRoutes.audit),
       _Action('Credit Notes', Icons.note_alt_outlined, AppRoutes.creditNotes),
@@ -131,7 +125,6 @@ class ManagerDashboardPage extends StatelessWidget {
         Icons.cancel_outlined,
         AppRoutes.cancellation,
       ),
-      _Action('Settings', Icons.settings_outlined, AppRoutes.settings),
     ].where((action) => sessionService.canAccess(action.route)).toList();
 
     return LayoutBuilder(
@@ -163,7 +156,7 @@ class ManagerDashboardPage extends StatelessWidget {
 
     return Card(
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         onTap: () => context.push(action.route),
         child: Padding(
           padding: const EdgeInsets.all(16),

@@ -3,12 +3,14 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../shared/navigation/auth_route_back_handler.dart';
 import '../../../../shared/widgets/app_app_bar.dart';
 import '../../../../shared/widgets/app_button.dart';
+import '../../../../shared/widgets/app_choice_chip.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../domain/entities/payment_method.dart';
 import '../cubit/checkout_cubit.dart';
@@ -146,7 +148,7 @@ class _OrderSummary extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             _SummaryRow(label: 'Net total', value: cart.netTotal),
-            _SummaryRow(label: 'VAT (15%)', value: cart.vatTotal),
+            _SummaryRow(label: AppConstants.vatLabel, value: cart.vatTotal),
             const Divider(height: 24),
             _SummaryRow(
               label: 'Grand total',
@@ -209,9 +211,9 @@ class _PaymentMethodSelector extends StatelessWidget {
         Wrap(
           spacing: 8,
           children: PaymentMethod.values.map((method) {
-            return ChoiceChip(
+            return AppChoiceChip(
               key: ValueKey('paymentMethod_${method.name}'),
-              label: Text(method.label),
+              label: method.label,
               selected: state.paymentMethod == method,
               onSelected: (_) => onChanged(method),
             );

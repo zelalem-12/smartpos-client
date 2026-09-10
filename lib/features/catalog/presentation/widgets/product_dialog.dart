@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../domain/entities/category_entity.dart';
@@ -32,6 +31,7 @@ class _ProductDialogState extends State<ProductDialog> {
   String? _nameError;
   String? _barcodeError;
   String? _priceError;
+  String? _unitError;
 
   @override
   void initState() {
@@ -96,6 +96,7 @@ class _ProductDialogState extends State<ProductDialog> {
       hasError = true;
     }
     if (_unitController.text.trim().isEmpty) {
+      _unitError = 'Unit is required';
       hasError = true;
     }
     if (price == null || price < 0) {
@@ -211,6 +212,7 @@ class _ProductDialogState extends State<ProductDialog> {
             AppTextField(
               label: 'Unit',
               controller: _unitController,
+              errorText: _unitError,
               textInputAction: TextInputAction.next,
             ),
             const SizedBox(height: 12),
@@ -229,7 +231,6 @@ class _ProductDialogState extends State<ProductDialog> {
                 value: _isActive,
                 onChanged: (value) => setState(() => _isActive = value),
                 title: const Text('Active'),
-                activeThumbColor: AppColors.accent,
               ),
             ],
           ],

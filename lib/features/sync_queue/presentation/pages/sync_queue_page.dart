@@ -7,6 +7,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/extensions/context_extensions.dart';
 import '../../../../shared/navigation/auth_route_back_handler.dart';
 import '../../../../shared/widgets/app_app_bar.dart';
+import '../../../../shared/widgets/empty_view.dart';
 import '../../domain/entities/sync_queue_entry.dart';
 import '../cubit/sync_queue_cubit.dart';
 import '../cubit/sync_queue_state.dart';
@@ -38,8 +39,6 @@ class _SyncQueueView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return AuthRouteBackHandler(
       child: Scaffold(
         backgroundColor: AppColors.background,
@@ -72,7 +71,7 @@ class _SyncQueueView extends StatelessWidget {
                   _StatusSummary(entries: state.entries),
                   Expanded(
                     child: state.entries.isEmpty
-                        ? _EmptyQueue(theme: theme)
+                        ? const _EmptyQueue()
                         : _QueueList(entries: state.entries),
                   ),
                   _SyncAllBar(state: state),
@@ -196,13 +195,14 @@ class _Chip extends StatelessWidget {
 }
 
 class _EmptyQueue extends StatelessWidget {
-  final ThemeData theme;
-  const _EmptyQueue({required this.theme});
+  const _EmptyQueue();
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Text('No sync jobs queued.', style: theme.textTheme.bodyLarge),
+    return const EmptyView(
+      icon: Icons.cloud_done_outlined,
+      message: 'No sync jobs queued',
+      hint: 'All records are synchronized.',
     );
   }
 }

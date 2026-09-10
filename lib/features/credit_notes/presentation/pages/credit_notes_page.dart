@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/theme/app_colors.dart';
@@ -8,6 +9,7 @@ import '../../../../shared/widgets/app_app_bar.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../../../shared/widgets/error_view.dart';
+import '../../../../shared/widgets/status_banner.dart';
 import '../cubit/credit_note_cubit.dart';
 
 class CreditNotesPage extends StatefulWidget {
@@ -94,14 +96,21 @@ class _CreditNotesPageState extends State<CreditNotesPage> {
                       'Remaining: ${item.remainingQuantity.toStringAsFixed(2)}',
                     ),
                     trailing: SizedBox(
-                      width: 120,
-                      child: TextFormField(
+                      width: 140,
+                      child: AppTextField(
                         key: Key('returnQty${item.id}'),
-                        initialValue: (state.quantities[item.id] ?? 0)
-                            .toString(),
+                        hint: '0',
+                        controller: TextEditingController(
+                          text: (state.quantities[item.id] ?? 0).toString(),
+                        ),
                         keyboardType: const TextInputType.numberWithOptions(
                           decimal: true,
                         ),
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(
+                            RegExp(r'^\d*\.?\d{0,2}'),
+                          ),
+                        ],
                         onChanged: (v) => context
                             .read<CreditNoteCubit>()
                             .setQuantity(item.id, double.tryParse(v) ?? 0),
@@ -123,43 +132,16 @@ class _CreditNotesPageState extends State<CreditNotesPage> {
               ],
               if (state.result != null) ...[
                 const SizedBox(height: 16),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: AppColors.success.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
-                    children: [
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.check_circle,
-                            color: AppColors.success,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              'Credit note #${state.result!.number} created successfully',
-                              style: Theme.of(context).textTheme.bodyMedium
-                                  ?.copyWith(
-                                    color: AppColors.success,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Credit total: ${CurrencyFormatter.format(state.result!.grossTotal)}',
-                        style: Theme.of(context).textTheme.bodySmall
-                            ?.copyWith(color: AppColors.success),
-                      ),
-                    ],
-                  ),
+                StatusBanner(
+                  message:
+                      'Credit note #${state.result!.number} created successfully',
+                  type: StatusBannerType.success,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Credit total: ${CurrencyFormatter.format(state.result!.grossTotal)}',
+                  style: Theme.of(context).textTheme.bodySmall
+                      ?.copyWith(color: AppColors.success),
                 ),
               ],
             ],

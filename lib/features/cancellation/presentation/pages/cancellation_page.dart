@@ -8,6 +8,7 @@ import '../../../../shared/widgets/app_app_bar.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../../../shared/widgets/error_view.dart';
+import '../../../../shared/widgets/status_banner.dart';
 import '../cubit/cancellation_cubit.dart';
 
 class CancellationPage extends StatefulWidget {
@@ -120,33 +121,9 @@ class _CancellationPageState extends State<CancellationPage> {
               ],
               if (state.success) ...[
                 const SizedBox(height: 16),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: AppColors.success.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.check_circle,
-                        color: AppColors.success,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'Cancellation request submitted successfully',
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(
-                                color: AppColors.success,
-                                fontWeight: FontWeight.w600,
-                              ),
-                        ),
-                      ),
-                    ],
-                  ),
+                const StatusBanner(
+                  message: 'Cancellation request submitted successfully',
+                  type: StatusBannerType.success,
                 ),
               ],
             ],

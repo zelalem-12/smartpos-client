@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/currency_formatter.dart';
 import '../../../catalog/domain/entities/product_entity.dart';
 
 /// Card displayed in the POS product grid.
@@ -55,7 +56,7 @@ class PosProductCard extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    '${product.priceLabel} ETB',
+                    CurrencyFormatter.format(product.price),
                     style: theme.textTheme.bodyMedium?.copyWith(
                       fontWeight: FontWeight.w700,
                       color: AppColors.accentDark,

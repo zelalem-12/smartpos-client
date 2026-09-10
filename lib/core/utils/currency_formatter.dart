@@ -1,5 +1,7 @@
 import 'package:intl/intl.dart';
 
+import '../constants/app_constants.dart';
+
 /// Ethiopian Birr currency formatting.
 class CurrencyFormatter {
   const CurrencyFormatter._();
@@ -8,7 +10,7 @@ class CurrencyFormatter {
 
   /// Format a number as Ethiopian Birr: "1,234.50 ETB"
   static String format(double amount) {
-    return '${_formatter.format(amount)} ETB';
+    return '${_formatter.format(amount)} ${AppConstants.currencyCode}';
   }
 
   /// Format without currency suffix: "1,234.50"

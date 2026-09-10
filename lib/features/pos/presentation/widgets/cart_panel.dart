@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/currency_formatter.dart';
+import '../../../../shared/widgets/empty_view.dart';
 import '../../domain/entities/cart_entity.dart';
 import 'cart_line_item.dart';
 
@@ -25,8 +27,6 @@ class CartPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Container(
       color: AppColors.surface,
       child: SafeArea(
@@ -37,13 +37,10 @@ class CartPanel extends StatelessWidget {
             const Divider(height: 1),
             Expanded(
               child: cart.isEmpty
-                  ? Center(
-                      child: Text(
-                        'Your cart is empty',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
+                  ? const EmptyView(
+                      icon: Icons.shopping_cart_outlined,
+                      message: 'Cart is empty',
+                      hint: 'Tap products to add them.',
                     )
                   : ListView.builder(
                       padding: const EdgeInsets.all(12),
@@ -137,7 +134,7 @@ class CartPanel extends StatelessWidget {
             style: theme.textTheme.bodyMedium,
           ),
           _TotalRow(
-            label: 'VAT (15%)',
+            label: AppConstants.vatLabel,
             value: CurrencyFormatter.format(cart.vatTotal),
             style: theme.textTheme.bodyMedium,
           ),

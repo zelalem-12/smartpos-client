@@ -6,6 +6,7 @@ import '../../../../core/di/injection.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/services/session_service.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../shared/widgets/app_app_bar.dart';
 
 /// Cashier home shown at [AppRoutes.cashier].
 class CashierDashboardPage extends StatelessWidget {
@@ -18,16 +19,8 @@ class CashierDashboardPage extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.background,
-        elevation: 0,
-        title: Text(
-          AppConstants.appName,
-          style: theme.textTheme.titleLarge?.copyWith(
-            color: AppColors.primary,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
+      appBar: AppAppBar(
+        title: AppConstants.appName,
         actions: [
           if (session != null)
             Padding(

@@ -226,11 +226,13 @@ void main() {
         await tester.pumpAndSettle();
         expect(router.state.matchedLocation, AppRoutes.manager);
 
+        // Catalog is in the nav shell (bottom nav/rail), not the grid.
         await tester.tap(find.text('Catalog'));
         await tester.pumpAndSettle();
         expect(router.state.matchedLocation, AppRoutes.catalog);
 
-        router.pop();
+        // Switching back to the Sale tab returns to the dashboard branch.
+        await tester.tap(find.text('Sale'));
         await tester.pumpAndSettle();
         expect(router.state.matchedLocation, AppRoutes.manager);
       },
@@ -249,13 +251,10 @@ void main() {
 
       for (final label in [
         'New Sale',
-        'Catalog',
-        'Reports',
         'Sync Queue',
         'Audit Trail',
         'Credit Notes',
         'Invoice Cancellation',
-        'Settings',
       ]) {
         expect(find.text(label), findsOneWidget);
       }
